@@ -22,7 +22,7 @@ import string
 
 from database import get_db
 from models import Utilisateur
-from auth import hasher_mot_de_passe, verifier_mot_de_passe, creer_jeton_acces, obtenir_utilisateur_actuel
+from auth import hacher_mot_de_passe, verifier_mot_de_passe, creer_jeton_acces, obtenir_utilisateur_actuel
 from schemas import (
     FormulaireInscription,
     FormulaireConnexion,
