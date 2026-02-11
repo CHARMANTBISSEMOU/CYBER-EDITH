@@ -99,7 +99,7 @@ export const authApi = {
   },
 
   changePassword: async (passwordData: { current_password: string; new_password: string }): Promise<void> => {
-    await api.put('/utilisateurs/moi', {
+    await api.put('/utilisateurs/changer-mot-de-passe', {
       mot_de_passe_actuel: passwordData.current_password,
       mot_de_passe: passwordData.new_password,
     });
