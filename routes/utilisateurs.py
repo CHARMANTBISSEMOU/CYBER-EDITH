@@ -44,43 +44,55 @@ EMAIL_CONFIG = {
 # Base de données simulée pour les tokens de réinitialisation
 reset_tokens_db = {}
 
-def generate_reset_token():
-    """Générer un token de réinitialisation sécurisé"""
-    return ''.join(random.choices(string.ascii_letters + string.digits, k=32))
+def generate_reset_code():
+    """Générer un code de réinitialisation de 4 chiffres"""
+    return ''.join(random.choices(string.digits, k=4))
 
-def send_reset_email(email: str, reset_token: str):
-    """Envoyer un email de réinitialisation de mot de passe"""
+def send_reset_email(email: str, reset_code: str):
+    """Envoyer un email avec un code de réinitialisation de 4 chiffres"""
     try:
+        # Logs de diagnostic
+        print(f"🔧 CONFIGURATION SMTP:")
+        print(f"   - SERVER: {EMAIL_CONFIG['SMTP_SERVER']}")
+        print(f"   - PORT: {EMAIL_CONFIG['SMTP_PORT']}")
+        print(f"   - USER: {EMAIL_CONFIG['EMAIL_USER']}")
+        print(f"   - PASSWORD: {'***' if EMAIL_CONFIG['EMAIL_PASSWORD'] else 'EMPTY'}")
+        
         # Mode test : si pas de configuration email, simuler l'envoi
         if not EMAIL_CONFIG["EMAIL_USER"] or not EMAIL_CONFIG["EMAIL_PASSWORD"]:
             print(f"📧 MODE TEST - Email envoyé à {email}")
-            print(f"🔗 Token de réinitialisation: {reset_token}")
-            print(f"🔗 Lien de réinitialisation: https://votre-app.com/reset-password?token={reset_token}")
+            print(f"� CODE DE RÉINITIALISATION: {reset_code}")
             return True
         
         # Créer le message email
         msg = MIMEMultipart()
         msg['From'] = EMAIL_CONFIG["FROM_EMAIL"]
         msg['To'] = email
-        msg['Subject'] = "Réinitialisation de votre mot de passe - App Immobilier"
+        msg['Subject'] = "Code de réinitialisation - App Immobilier"
         
-        # Corps de l'email
-        reset_link = f"https://votre-app.com/reset-password?token={reset_token}"
+        # Corps de l'email avec code de 4 chiffres
         body = f"""
         Bonjour,
         
         Vous avez demandé la réinitialisation de votre mot de passe pour l'application App Immobilier.
         
-        Cliquez sur le lien suivant pour réinitialiser votre mot de passe :
-        {reset_link}
+        Voici votre code de réinitialisation :
         
-        Ce lien expirera dans 1 heure.
+        🔑 {reset_code} 🔑
+        
+        Ce code expirera dans 15 minutes.
+        
+        Entrez ce code dans l'application pour définir votre nouveau mot de passe.
         
         Si vous n'avez pas demandé cette réinitialisation, veuillez ignorer cet email.
         
         Cordialement,
         L'équipe App Immobilier
         """
+        
+        # Log pour test
+        print(f"� CODE DE RÉINITIALISATION: {reset_code}")
+        print(f"� Email envoyé à: {email}")
         
         msg.attach(MIMEText(body, 'plain'))
         
@@ -297,15 +309,15 @@ def mot_de_passe_oublie(donnees: dict, db: Session = Depends(get_db)):
         # Pour des raisons de sécurité, ne pas révéler si l'email existe ou non
         return {"message": "Si cet email existe, un lien de réinitialisation a été envoyé"}
     
-    # Générer et stocker le token
-    reset_token = generate_reset_token()
-    reset_tokens_db[reset_token] = {
+    # Générer et stocker le code de 4 chiffres
+    reset_code = generate_reset_code()
+    reset_tokens_db[reset_code] = {
         "email": email,
-        "expires_at": datetime.now() + timedelta(hours=1)
+        "expires_at": datetime.now() + timedelta(minutes=15)
     }
     
     # Envoyer l'email
-    email_sent = send_reset_email(email, reset_token)
+    email_sent = send_reset_email(email, reset_code)
     
     if email_sent:
         return {"message": "Un email de réinitialisation a été envoyé à votre adresse email"}
@@ -317,46 +329,54 @@ def mot_de_passe_oublie(donnees: dict, db: Session = Depends(get_db)):
 
 
 # ============================================
-# RÉINITIALISER MOT DE PASSE (avec token)
+# VÉRIFIER CODE ET RÉINITIALISER MOT DE PASSE
 # ============================================
-@routeur.post("/reinitialiser-mot-de-passe", response_model=ReponseMessage)
-def reinitialiser_mot_de_passe(donnees: dict, db: Session = Depends(get_db)):
+@routeur.post("/verifier-code-et-reinitialiser", response_model=ReponseMessage)
+def verifier_code_et_reinitialiser(donnees: dict, db: Session = Depends(get_db)):
     """
-    Réinitialiser le mot de passe avec un token.
+    Vérifier le code de 4 chiffres et réinitialiser le mot de passe.
     """
-    token = donnees.get("token")
+    email = donnees.get("email")
+    code = donnees.get("code")
     nouveau_mot_de_passe = donnees.get("nouveau_mot_de_passe")
     
-    if not token or not nouveau_mot_de_passe:
+    if not email or not code or not nouveau_mot_de_passe:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Le token et le nouveau mot de passe sont requis."
+            detail="L'email, le code et le nouveau mot de passe sont requis."
         )
     
-    # Vérifier le token
-    if token not in reset_tokens_db:
+    # Vérifier le code
+    if code not in reset_tokens_db:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Token invalide ou expiré."
+            detail="Code invalide ou expiré."
         )
     
-    token_data = reset_tokens_db[token]
+    code_data = reset_tokens_db[code]
+    
+    # Vérifier que l'email correspond
+    if code_data["email"] != email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Code invalide pour cet email."
+        )
     
     # Vérifier l'expiration
-    if datetime.now() > token_data["expires_at"]:
-        del reset_tokens_db[token]
+    if datetime.now() > code_data["expires_at"]:
+        del reset_tokens_db[code]
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Token expiré."
+            detail="Code expiré."
         )
     
     # Trouver l'utilisateur
     utilisateur = db.query(Utilisateur).filter(
-        Utilisateur.email == token_data["email"]
+        Utilisateur.email == email
     ).first()
     
     if not utilisateur:
-        del reset_tokens_db[token]
+        del reset_tokens_db[code]
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Utilisateur non trouvé."
@@ -366,8 +386,8 @@ def reinitialiser_mot_de_passe(donnees: dict, db: Session = Depends(get_db)):
     utilisateur.mot_de_passe = hasher_mot_de_passe(nouveau_mot_de_passe)
     db.commit()
     
-    # Supprimer le token utilisé
-    del reset_tokens_db[token]
+    # Supprimer le code utilisé
+    del reset_tokens_db[code]
     
     return {"message": "Mot de passe réinitialisé avec succès"}
 
