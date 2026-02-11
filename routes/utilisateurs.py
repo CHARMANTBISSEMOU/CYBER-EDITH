@@ -277,6 +277,20 @@ def modifier_mon_profil(
         utilisateur_actuel.photo_profil_url = donnees.photo_profil_url
     if donnees.consent_geolocalisation:
         utilisateur_actuel.consent_geolocalisation = donnees.consent_geolocalisation
+    
+    # Gérer le changement de mot de passe
+    if hasattr(donnees, 'mot_de_passe_actuel') and hasattr(donnees, 'mot_de_passe'):
+        if donnees.mot_de_passe_actuel and donnees.mot_de_passe:
+            # Vérifier que le mot de passe actuel est correct
+            if not verifier_mot_de_passe(donnees.mot_de_passe_actuel, utilisateur_actuel.mot_de_passe):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Le mot de passe actuel est incorrect."
+                )
+            
+            # Mettre à jour le mot de passe
+            utilisateur_actuel.mot_de_passe = hacher_mot_de_passe(donnees.mot_de_passe)
+            print(f"🔐 Mot de passe mis à jour pour l'utilisateur {utilisateur_actuel.email}")
 
     db.commit()
     db.refresh(utilisateur_actuel)
