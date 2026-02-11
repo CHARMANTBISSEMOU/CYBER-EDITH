@@ -7,6 +7,7 @@ import { useAuthStore } from '../store/authStore';
 
 import { LoginScreen } from '../screens/auth/LoginScreen';
 import { RegisterScreen } from '../screens/auth/RegisterScreen';
+import { ResetPasswordScreen } from '../screens/auth/ResetPasswordScreen';
 import { HomeScreen } from '../screens/home/HomeScreen';
 import { BienDetailScreen } from '../screens/bien/BienDetailScreen';
 import { EditBienScreen } from '../screens/bien/EditBienScreen';
@@ -37,6 +38,7 @@ const AuthStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="Login" component={LoginScreen} />
     <Stack.Screen name="Register" component={RegisterScreen} />
+    <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
   </Stack.Navigator>
 );
 
