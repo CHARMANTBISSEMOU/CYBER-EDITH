@@ -286,7 +286,13 @@ def modifier_mon_profil(
             print(f"🔐 Nouveau mot de passe reçu: {donnees['mot_de_passe'][:3]}***")
             
             # Vérifier que le mot de passe actuel est correct
-            if not verifier_mot_de_passe(donnees['mot_de_passe_actuel'], utilisateur_actuel.mot_de_passe):
+            print(f"🔍 Vérification mot de passe pour {utilisateur_actuel.email}")
+            print(f"🔍 Hash en base: {utilisateur_actuel.mot_de_passe[:20]}...")
+            
+            mot_de_passe_valide = verifier_mot_de_passe(donnees['mot_de_passe_actuel'], utilisateur_actuel.mot_de_passe)
+            print(f"🔍 Résultat vérification: {mot_de_passe_valide}")
+            
+            if not mot_de_passe_valide:
                 print(f"❌ Mot de passe actuel incorrect pour {utilisateur_actuel.email}")
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
