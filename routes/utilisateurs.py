@@ -310,6 +310,54 @@ def modifier_mon_profil(
 
 
 # ============================================
+# CHANGER MOT DE PASSE (protégé)
+# ============================================
+@routeur.put("/changer-mot-de-passe", response_model=ReponseMessage)
+def changer_mot_de_passe(
+    donnees: dict,
+    utilisateur_actuel: Utilisateur = Depends(obtenir_utilisateur_actuel),
+    db: Session = Depends(get_db)
+):
+    """
+    Changer le mot de passe de l'utilisateur connecté.
+    """
+    mot_de_passe_actuel = donnees.get("mot_de_passe_actuel")
+    nouveau_mot_de_passe = donnees.get("mot_de_passe")
+    
+    if not mot_de_passe_actuel or not nouveau_mot_de_passe:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Le mot de passe actuel et le nouveau mot de passe sont requis."
+        )
+    
+    print(f"🔐 Tentative changement mot de passe pour {utilisateur_actuel.email}")
+    print(f"🔐 Mot de passe actuel reçu: {mot_de_passe_actuel[:3]}***")
+    print(f"🔐 Nouveau mot de passe reçu: {nouveau_mot_de_passe[:3]}***")
+    
+    # Vérifier que le mot de passe actuel est correct
+    print(f"🔍 Vérification mot de passe pour {utilisateur_actuel.email}")
+    print(f"🔍 Hash en base: {utilisateur_actuel.mot_de_passe[:20]}...")
+    
+    mot_de_passe_valide = verifier_mot_de_passe(mot_de_passe_actuel, utilisateur_actuel.mot_de_passe)
+    print(f"🔍 Résultat vérification: {mot_de_passe_valide}")
+    
+    if not mot_de_passe_valide:
+        print(f"❌ Mot de passe actuel incorrect pour {utilisateur_actuel.email}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Le mot de passe actuel est incorrect."
+        )
+    
+    # Mettre à jour le mot de passe
+    utilisateur_actuel.mot_de_passe = hacher_mot_de_passe(nouveau_mot_de_passe)
+    db.commit()
+    
+    print(f"✅ Mot de passe mis à jour avec succès pour l'utilisateur {utilisateur_actuel.email}")
+    
+    return {"message": "Mot de passe changé avec succès"}
+
+
+# ============================================
 # MOT DE PASSE OUBLIÉ
 # ============================================
 @routeur.post("/mot-de-passe-oublie", response_model=ReponseMessage)
