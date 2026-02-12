@@ -45,7 +45,7 @@ export const HomeScreen = ({ navigation }: any) => {
     <TouchableOpacity
       onPress={() => navigation.navigate('BienDetail', { id: item.id_bien })}
       style={{
-        backgroundColor: '#1e293b',
+        backgroundColor: '#f8fafc',
         borderRadius: 16,
         marginBottom: 16,
         overflow: 'hidden',
@@ -67,7 +67,7 @@ export const HomeScreen = ({ navigation }: any) => {
             resizeMode="cover"
           />
         ) : (
-          <View style={{ width: 140, height: 140, backgroundColor: '#334155', alignItems: 'center', justifyContent: 'center' }}>
+          <View style={{ width: 140, height: 140, backgroundColor: '#e2e8f0', alignItems: 'center', justifyContent: 'center' }}>
             <Ionicons name="image-outline" size={40} color="#64748b" />
           </View>
         )}
@@ -77,12 +77,12 @@ export const HomeScreen = ({ navigation }: any) => {
       <View style={{ flex: 1, padding: 16, justifyContent: 'space-between' }}>
         {/* Titre */}
         <View>
-          <Text style={{ color: '#fff', fontSize: 18, fontWeight: '700' }} numberOfLines={2}>
+          <Text style={{ color: '#1e293b', fontSize: 18, fontWeight: '700' }} numberOfLines={2}>
             {item.titre}
           </Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
             <Ionicons name="location-outline" size={16} color="#64748b" />
-            <Text style={{ color: '#9ca3af', fontSize: 13, marginLeft: 4 }} numberOfLines={1}>
+            <Text style={{ color: '#64748b', fontSize: 13, marginLeft: 4 }} numberOfLines={1}>
               {item.quartier}, {item.ville}
             </Text>
           </View>
@@ -108,7 +108,7 @@ export const HomeScreen = ({ navigation }: any) => {
             {item.nombre_chambres > 0 && (
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <Ionicons name="bed-outline" size={16} color="#64748b" />
-                <Text style={{ color: '#9ca3af', fontSize: 13, marginLeft: 4 }}>
+                <Text style={{ color: '#64748b', fontSize: 13, marginLeft: 4 }}>
                   {item.nombre_chambres}
                 </Text>
               </View>
@@ -116,7 +116,7 @@ export const HomeScreen = ({ navigation }: any) => {
             {item.superficie && (
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <Ionicons name="resize-outline" size={16} color="#64748b" />
-                <Text style={{ color: '#9ca3af', fontSize: 13, marginLeft: 4 }}>
+                <Text style={{ color: '#64748b', fontSize: 13, marginLeft: 4 }}>
                   {item.superficie}m²
                 </Text>
               </View>
@@ -133,7 +133,7 @@ export const HomeScreen = ({ navigation }: any) => {
                 : 'N/A'
               }
             </Text>
-            <Text style={{ color: '#9ca3af', fontSize: 11, marginTop: 2 }}>
+            <Text style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>
               {item.prix_loyer ? '/mois' : ''}
             </Text>
           </View>
@@ -162,22 +162,22 @@ export const HomeScreen = ({ navigation }: any) => {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#0f172a', alignItems: 'center', justifyContent: 'center' }}>
+      <View style={{ flex: 1, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' }}>
         <ActivityIndicator size="large" color="#3b82f6" />
       </View>
     );
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#0f172a' }}>
+    <View style={{ flex: 1, backgroundColor: '#f8fafc' }}>
       {/* En-tête */}
-      <View style={{ padding: 16, paddingTop: 60, backgroundColor: '#1e293b' }}>
+      <View style={{ padding: 16, paddingTop: 60, backgroundColor: '#ffffff' }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <View style={{ flex: 1 }}>
-            <Text style={{ color: '#fff', fontSize: 28, fontWeight: '700', marginBottom: 4 }}>
+            <Text style={{ color: '#1e293b', fontSize: 28, fontWeight: '700', marginBottom: 4 }}>
               Découvrir
             </Text>
-            <Text style={{ color: '#9ca3af', fontSize: 14 }}>
+            <Text style={{ color: '#64748b', fontSize: 14 }}>
               Trouvez votre prochain logement
             </Text>
           </View>
@@ -188,12 +188,12 @@ export const HomeScreen = ({ navigation }: any) => {
                 width: 44,
                 height: 44,
                 borderRadius: 22,
-                backgroundColor: '#334155',
+                backgroundColor: '#f1f5f9',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <Ionicons name="search" size={20} color="#fff" />
+              <Ionicons name="search" size={20} color="#1e293b" />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => navigation.navigate('Notifications')}
@@ -201,12 +201,12 @@ export const HomeScreen = ({ navigation }: any) => {
                 width: 44,
                 height: 44,
                 borderRadius: 22,
-                backgroundColor: '#334155',
+                backgroundColor: '#f1f5f9',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <Ionicons name="notifications" size={20} color="#fff" />
+              <Ionicons name="notifications" size={20} color="#1e293b" />
             </TouchableOpacity>
           </View>
         </View>
@@ -251,7 +251,7 @@ export const HomeScreen = ({ navigation }: any) => {
         ListEmptyComponent={
           <View style={{ alignItems: 'center', paddingTop: 40 }}>
             <Ionicons name="home-outline" size={64} color="#64748b" />
-            <Text style={{ color: '#9ca3af', fontSize: 16, marginTop: 16 }}>
+            <Text style={{ color: '#64748b', fontSize: 16, marginTop: 16 }}>
               Aucun bien disponible
             </Text>
           </View>

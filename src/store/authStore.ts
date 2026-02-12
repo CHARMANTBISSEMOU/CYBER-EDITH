@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { authApi } from '../services/api';
 import type { User, LoginRequest, RegisterRequest } from '../types';
+import { checkTokenExpiry, clearStorage } from '../utils/authUtils';
 
 interface AuthState {
   user: User | null;
@@ -52,18 +53,28 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ isLoading: true });
     try {
       await authApi.logout();
+      await clearStorage();
       set({ user: null, isAuthenticated: false, isLoading: false });
     } catch (error) {
-      set({ isLoading: false });
+      await clearStorage();
+      set({ user: null, isAuthenticated: false, isLoading: false });
     }
   },
 
   loadUser: async () => {
     set({ isLoading: true });
     try {
+      const isTokenValid = await checkTokenExpiry();
+      if (!isTokenValid) {
+        await clearStorage();
+        set({ user: null, isAuthenticated: false, isLoading: false });
+        return;
+      }
+      
       const user = await authApi.getProfile();
       set({ user, isAuthenticated: true, isLoading: false });
     } catch (error) {
+      await clearStorage();
       set({ user: null, isAuthenticated: false, isLoading: false });
     }
   },

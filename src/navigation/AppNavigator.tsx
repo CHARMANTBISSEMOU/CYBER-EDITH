@@ -8,6 +8,7 @@ import { useAuthStore } from '../store/authStore';
 import { LoginScreen } from '../screens/auth/LoginScreen';
 import { RegisterScreen } from '../screens/auth/RegisterScreen';
 import { ResetPasswordScreen } from '../screens/auth/ResetPasswordScreen';
+import { SimpleDesignDemo } from '../screens/SimpleDesignDemo';
 import { HomeScreen } from '../screens/home/HomeScreen';
 import { BienDetailScreen } from '../screens/bien/BienDetailScreen';
 import { EditBienScreen } from '../screens/bien/EditBienScreen';
@@ -39,6 +40,7 @@ const AuthStack = () => (
     <Stack.Screen name="Login" component={LoginScreen} />
     <Stack.Screen name="Register" component={RegisterScreen} />
     <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+    <Stack.Screen name="DesignDemo" component={SimpleDesignDemo} />
   </Stack.Navigator>
 );
 
@@ -96,10 +98,7 @@ const MainStack = () => (
       name="BienDetail" 
       component={BienDetailScreen}
       options={{
-        headerShown: true,
-        headerStyle: { backgroundColor: '#1e293b' },
-        headerTintColor: '#fff',
-        headerTitle: 'Détails du bien',
+        headerShown: false,
       }}
     />
     <Stack.Screen 
@@ -126,10 +125,7 @@ const MainStack = () => (
       name="Search" 
       component={SearchScreen}
       options={{
-        headerShown: true,
-        headerStyle: { backgroundColor: '#1e293b' },
-        headerTintColor: '#fff',
-        headerTitle: 'Recherche',
+        headerShown: false,
       }}
     />
     <Stack.Screen 
@@ -207,7 +203,12 @@ const MainStack = () => (
       component={CreateContractScreen}
       options={{ headerShown: false }}
     />
-  </Stack.Navigator>
+    <Stack.Screen 
+      name="ResetPassword" 
+      component={ResetPasswordScreen}
+      options={{ headerShown: false }}
+    />
+    </Stack.Navigator>
 );
 
 export const AppNavigator = () => {
