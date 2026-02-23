@@ -48,13 +48,13 @@ export const SettingsScreen = ({ navigation }: any) => {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#0f172a' }}>
+    <View style={{ flex: 1, backgroundColor: '#ffffff' }}>
       <ScreenHeader title="Paramètres" onBack={() => navigation.goBack()} />
       
       <ScrollView style={{ flex: 1 }}>
         {/* Section Mode de paiement */}
-        <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: '#1e293b' }}>
-          <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold', marginBottom: 16 }}>
+        <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' }}>
+          <Text style={{ color: '#1e293b', fontSize: 18, fontWeight: 'bold', marginBottom: 16 }}>
             Mode de paiement
           </Text>
           
@@ -64,17 +64,19 @@ export const SettingsScreen = ({ navigation }: any) => {
               flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'space-between',
-              backgroundColor: paymentMode === 'service' ? '#3b82f6' : '#1e293b',
+              backgroundColor: paymentMode === 'service' ? '#3b82f6' : '#f8fafc',
               padding: 16,
               borderRadius: 12,
               marginBottom: 12,
+              borderWidth: 1,
+              borderColor: '#e2e8f0',
             }}
           >
             <View style={{ flex: 1 }}>
-              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600', marginBottom: 4 }}>
+              <Text style={{ color: '#1e293b', fontSize: 16, fontWeight: '600', marginBottom: 4 }}>
                 Par service
               </Text>
-              <Text style={{ color: '#9ca3af', fontSize: 14 }}>
+              <Text style={{ color: '#64748b', fontSize: 14 }}>
                 5 000 FCFA par bien trouvé
               </Text>
             </View>
@@ -89,16 +91,18 @@ export const SettingsScreen = ({ navigation }: any) => {
               flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'space-between',
-              backgroundColor: paymentMode === 'annual' ? '#3b82f6' : '#1e293b',
+              backgroundColor: paymentMode === 'annual' ? '#3b82f6' : '#f8fafc',
               padding: 16,
               borderRadius: 12,
+              borderWidth: 1,
+              borderColor: '#e2e8f0',
             }}
           >
             <View style={{ flex: 1 }}>
-              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600', marginBottom: 4 }}>
+              <Text style={{ color: '#1e293b', fontSize: 16, fontWeight: '600', marginBottom: 4 }}>
                 Annuel
               </Text>
-              <Text style={{ color: '#9ca3af', fontSize: 14 }}>
+              <Text style={{ color: '#64748b', fontSize: 14 }}>
                 10 000 FCFA/an (proprio) ou 5 000 FCFA/an (locataire)
               </Text>
             </View>
@@ -109,8 +113,8 @@ export const SettingsScreen = ({ navigation }: any) => {
         </View>
 
         {/* Section Langue */}
-        <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: '#1e293b' }}>
-          <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold', marginBottom: 16 }}>
+        <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' }}>
+          <Text style={{ color: '#1e293b', fontSize: 18, fontWeight: 'bold', marginBottom: 16 }}>
             Langue
           </Text>
           
@@ -122,12 +126,14 @@ export const SettingsScreen = ({ navigation }: any) => {
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: language === 'fr' ? '#3b82f6' : '#1e293b',
+                backgroundColor: language === 'fr' ? '#3b82f6' : '#f8fafc',
                 padding: 16,
                 borderRadius: 12,
+                borderWidth: 1,
+                borderColor: '#e2e8f0',
               }}
             >
-              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600', marginRight: 8 }}>
+              <Text style={{ color: '#1e293b', fontSize: 16, fontWeight: '600', marginRight: 8 }}>
                 🇫🇷 Français
               </Text>
               {language === 'fr' && <Ionicons name="checkmark-circle" size={20} color="#fff" />}
@@ -140,12 +146,14 @@ export const SettingsScreen = ({ navigation }: any) => {
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: language === 'en' ? '#3b82f6' : '#1e293b',
+                backgroundColor: language === 'en' ? '#3b82f6' : '#f8fafc',
                 padding: 16,
                 borderRadius: 12,
+                borderWidth: 1,
+                borderColor: '#e2e8f0',
               }}
             >
-              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600', marginRight: 8 }}>
+              <Text style={{ color: '#1e293b', fontSize: 16, fontWeight: '600', marginRight: 8 }}>
                 🇬🇧 English
               </Text>
               {language === 'en' && <Ionicons name="checkmark-circle" size={20} color="#fff" />}
@@ -154,83 +162,85 @@ export const SettingsScreen = ({ navigation }: any) => {
         </View>
 
         {/* Section Notifications */}
-        <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: '#1e293b' }}>
+        <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <View style={{ flex: 1 }}>
-              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600', marginBottom: 4 }}>
+              <Text style={{ color: '#1e293b', fontSize: 16, fontWeight: '600', marginBottom: 4 }}>
                 Notifications
               </Text>
-              <Text style={{ color: '#9ca3af', fontSize: 14 }}>
+              <Text style={{ color: '#64748b', fontSize: 14 }}>
                 Recevoir des notifications push
               </Text>
             </View>
             <Switch
               value={notifications}
               onValueChange={setNotifications}
-              trackColor={{ false: '#374151', true: '#3b82f6' }}
-              thumbColor={notifications ? '#fff' : '#9ca3af'}
+              trackColor={{ false: '#e2e8f0', true: '#3b82f6' }}
+              thumbColor={notifications ? '#fff' : '#94a3b8'}
             />
           </View>
         </View>
 
         {/* Section Conditions d'utilisation */}
-        <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: '#1e293b' }}>
+        <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' }}>
           <TouchableOpacity
             onPress={handleListenTerms}
             style={{
               flexDirection: 'row',
               alignItems: 'center',
-              backgroundColor: '#1e293b',
+              backgroundColor: '#f8fafc',
               padding: 16,
               borderRadius: 12,
+              borderWidth: 1,
+              borderColor: '#e2e8f0',
             }}
           >
             <Ionicons name="volume-high-outline" size={24} color="#3b82f6" />
             <View style={{ flex: 1, marginLeft: 12 }}>
-              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600', marginBottom: 4 }}>
+              <Text style={{ color: '#1e293b', fontSize: 16, fontWeight: '600', marginBottom: 4 }}>
                 Réécouter les conditions
               </Text>
-              <Text style={{ color: '#9ca3af', fontSize: 14 }}>
+              <Text style={{ color: '#64748b', fontSize: 14 }}>
                 Synthèse vocale des conditions d'utilisation
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+            <Ionicons name="chevron-forward" size={20} color="#64748b" />
           </TouchableOpacity>
         </View>
 
         {/* Section À propos */}
-        <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: '#1e293b' }}>
-          <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold', marginBottom: 16 }}>
+        <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' }}>
+          <Text style={{ color: '#1e293b', fontSize: 18, fontWeight: 'bold', marginBottom: 16 }}>
             À propos de l'application
           </Text>
           
-          <View style={{ backgroundColor: '#1e293b', padding: 16, borderRadius: 12, marginBottom: 12 }}>
-            <Text style={{ color: '#9ca3af', fontSize: 14, lineHeight: 20 }}>
-              <Text style={{ color: '#fff', fontWeight: '600' }}>🏠 Accueil :</Text> Découvrez les biens disponibles à la location ou à la vente.
+          <View style={{ backgroundColor: '#f8fafc', padding: 16, borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: '#e2e8f0' }}>
+            <Text style={{ color: '#64748b', fontSize: 14, lineHeight: 20 }}>
+              <Text style={{ color: '#1e293b', fontWeight: '600' }}>🏠 Accueil :</Text> Découvrez les biens disponibles à la location ou à la vente.
             </Text>
           </View>
 
-          <View style={{ backgroundColor: '#1e293b', padding: 16, borderRadius: 12, marginBottom: 12 }}>
-            <Text style={{ color: '#9ca3af', fontSize: 14, lineHeight: 20 }}>
-              <Text style={{ color: '#fff', fontWeight: '600' }}>🔍 Recherche :</Text> Filtrez par ville, quartier, type de bien, prix, nombre de chambres, etc.
+          <View style={{ backgroundColor: '#f8fafc', padding: 16, borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: '#e2e8f0' }}>
+            <Text style={{ color: '#64748b', fontSize: 14, lineHeight: 20 }}>
+              <Text style={{ color: '#1e293b', fontWeight: '600' }}>🔍 Recherche :</Text> Filtrez par ville, quartier, type de bien, prix, nombre de chambres, etc.
             </Text>
           </View>
 
-          <View style={{ backgroundColor: '#1e293b', padding: 16, borderRadius: 12, marginBottom: 12 }}>
-            <Text style={{ color: '#9ca3af', fontSize: 14, lineHeight: 20 }}>
-              <Text style={{ color: '#fff', fontWeight: '600' }}>💬 Messages :</Text> Discutez avec les propriétaires ou locataires potentiels.
+          <View style={{ backgroundColor: '#f8fafc', padding: 16, borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: '#e2e8f0' }}>
+            <Text style={{ color: '#64748b', fontSize: 14, lineHeight: 20 }}>
+              <Text style={{ color: '#1e293b', fontWeight: '600' }}>💬 Messages :</Text> Discutez avec les propriétaires ou locataires potentiels.
             </Text>
           </View>
 
-          <View style={{ backgroundColor: '#1e293b', padding: 16, borderRadius: 12, marginBottom: 12 }}>
-            <Text style={{ color: '#9ca3af', fontSize: 14, lineHeight: 20 }}>
-              <Text style={{ color: '#fff', fontWeight: '600' }}>👤 Profil :</Text> Gérez vos biens, contrats, paiements et paramètres.
+          <View style={{ backgroundColor: '#f8fafc', padding: 16, borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: '#e2e8f0' }}>
+            <Text style={{ color: '#64748b', fontSize: 14, lineHeight: 20 }}>
+              <Text style={{ color: '#1e293b', fontWeight: '600' }}>👤 Profil :</Text> Gérez vos biens, contrats, paiements et paramètres.
             </Text>
           </View>
 
-          <View style={{ backgroundColor: '#1e293b', padding: 16, borderRadius: 12 }}>
-            <Text style={{ color: '#9ca3af', fontSize: 14, lineHeight: 20 }}>
-              <Text style={{ color: '#fff', fontWeight: '600' }}>📍 Géolocalisation :</Text> Système anti-triche pour garantir l'équité. Si vous trouvez un bien via l'app, des frais de service s'appliquent.
+          <View style={{ backgroundColor: '#f8fafc', padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0' }}>
+            <Text style={{ color: '#64748b', fontSize: 14, lineHeight: 20 }}>
+              <Text style={{ color: '#1e293b', fontWeight: '600' }}>📍 Géolocalisation :</Text> Système anti-triche pour garantir l'équité. Si vous trouvez un bien via l'app, des frais de service s'appliquent.
             </Text>
           </View>
         </View>
@@ -243,13 +253,15 @@ export const SettingsScreen = ({ navigation }: any) => {
               flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: '#dc2626',
+              backgroundColor: '#fef2f2',
               padding: 16,
               borderRadius: 12,
+              borderWidth: 1,
+              borderColor: '#e2e8f0',
             }}
           >
-            <Ionicons name="log-out-outline" size={24} color="#fff" />
-            <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600', marginLeft: 12 }}>
+            <Ionicons name="log-out-outline" size={24} color="#ef4444" />
+            <Text style={{ color: '#ef4444', fontSize: 16, fontWeight: '600', marginLeft: 12 }}>
               Se déconnecter
             </Text>
           </TouchableOpacity>

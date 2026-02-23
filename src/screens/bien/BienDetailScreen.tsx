@@ -112,7 +112,7 @@ export const BienDetailScreen = ({ route, navigation }: any) => {
   const isOwner = user?.id_utilisateur === bien.id_proprietaire;
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#0f172a' }}>
+    <View style={{ flex: 1, backgroundColor: '#ffffff' }}>
       <ScreenHeader title="Détails du bien" onBack={() => navigation.goBack()} />
 
       <ScrollView style={{ flex: 1 }}>
@@ -252,9 +252,9 @@ export const BienDetailScreen = ({ route, navigation }: any) => {
             </View>
           </View>
         ) : (
-          <View style={{ height: 300, backgroundColor: '#1e293b', alignItems: 'center', justifyContent: 'center' }}>
+          <View style={{ height: 300, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' }}>
             <Ionicons name="image-outline" size={80} color="#64748b" />
-            <Text style={{ color: '#9ca3af', marginTop: 8 }}>Aucune image disponible</Text>
+            <Text style={{ color: '#1e293b', marginTop: 8 }}>Aucune image disponible</Text>
           </View>
         )}
 
@@ -262,12 +262,12 @@ export const BienDetailScreen = ({ route, navigation }: any) => {
         <View style={{ padding: 16 }}>
           {/* Titre et localisation */}
           <View style={{ marginBottom: 16 }}>
-            <Text style={{ color: '#fff', fontSize: 24, fontWeight: '700', marginBottom: 8 }}>
+            <Text style={{ color: '#1e293b', fontSize: 24, fontWeight: '700', marginBottom: 8 }}>
               {bien.titre}
             </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
               <Ionicons name="location" size={18} color="#3b82f6" />
-              <Text style={{ color: '#9ca3af', marginLeft: 6, fontSize: 14 }}>
+              <Text style={{ color: '#64748b', marginLeft: 6, fontSize: 14 }}>
                 {bien.quartier}, {bien.ville}
               </Text>
             </View>
@@ -293,7 +293,7 @@ export const BienDetailScreen = ({ route, navigation }: any) => {
           </View>
 
           {/* Prix */}
-          <View style={{ backgroundColor: '#1e293b', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+          <View style={{ backgroundColor: '#f8fafc', borderRadius: 12, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#e2e8f0' }}>
             <Text style={{ color: '#10b981', fontSize: 28, fontWeight: '700' }}>
               {bien.prix_loyer ? `${bien.prix_loyer.toLocaleString()} FCFA/mois` : `${bien.prix_vente?.toLocaleString()} FCFA`}
             </Text>
@@ -303,18 +303,18 @@ export const BienDetailScreen = ({ route, navigation }: any) => {
           </View>
 
           {/* Caractéristiques */}
-          <View style={{ backgroundColor: '#1e293b', borderRadius: 12, padding: 16, marginBottom: 16 }}>
-            <Text style={{ color: '#fff', fontSize: 18, fontWeight: '600', marginBottom: 12 }}>
+          <View style={{ backgroundColor: '#f8fafc', borderRadius: 12, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#e2e8f0' }}>
+            <Text style={{ color: '#1e293b', fontSize: 18, fontWeight: '600', marginBottom: 12 }}>
               Caractéristiques
             </Text>
 
             <View style={{ gap: 12 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Ionicons name="home-outline" size={20} color="#9ca3af" />
-                  <Text style={{ color: '#9ca3af', marginLeft: 12 }}>Type</Text>
+                  <Ionicons name="home-outline" size={20} color="#64748b" />
+                  <Text style={{ color: '#64748b', marginLeft: 12 }}>Type</Text>
                 </View>
-                <Text style={{ color: '#fff', fontWeight: '600', textTransform: 'capitalize' }}>
+                <Text style={{ color: '#1e293b', fontWeight: '600', textTransform: 'capitalize' }}>
                   {bien.type_bien}
                 </Text>
               </View>
@@ -322,56 +322,56 @@ export const BienDetailScreen = ({ route, navigation }: any) => {
               {bien.superficie && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Ionicons name="resize-outline" size={20} color="#9ca3af" />
-                    <Text style={{ color: '#9ca3af', marginLeft: 12 }}>Superficie</Text>
+                    <Ionicons name="resize-outline" size={20} color="#64748b" />
+                    <Text style={{ color: '#64748b', marginLeft: 12 }}>Superficie</Text>
                   </View>
-                  <Text style={{ color: '#fff', fontWeight: '600' }}>{bien.superficie} m²</Text>
+                  <Text style={{ color: '#1e293b', fontWeight: '600' }}>{bien.superficie} m²</Text>
                 </View>
               )}
 
               {bien.nombre_chambres > 0 && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Ionicons name="bed-outline" size={20} color="#9ca3af" />
-                    <Text style={{ color: '#9ca3af', marginLeft: 12 }}>Chambres</Text>
+                    <Ionicons name="bed-outline" size={20} color="#64748b" />
+                    <Text style={{ color: '#64748b', marginLeft: 12 }}>Chambres</Text>
                   </View>
-                  <Text style={{ color: '#fff', fontWeight: '600' }}>{bien.nombre_chambres}</Text>
+                  <Text style={{ color: '#1e293b', fontWeight: '600' }}>{bien.nombre_chambres}</Text>
                 </View>
               )}
 
               {bien.nombre_salles_bain > 0 && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Ionicons name="water-outline" size={20} color="#9ca3af" />
-                    <Text style={{ color: '#9ca3af', marginLeft: 12 }}>Salles de bain</Text>
+                    <Ionicons name="water-outline" size={20} color="#64748b" />
+                    <Text style={{ color: '#64748b', marginLeft: 12 }}>Salles de bain</Text>
                   </View>
-                  <Text style={{ color: '#fff', fontWeight: '600' }}>{bien.nombre_salles_bain}</Text>
+                  <Text style={{ color: '#1e293b', fontWeight: '600' }}>{bien.nombre_salles_bain}</Text>
                 </View>
               )}
 
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Ionicons name="checkmark-circle-outline" size={20} color="#9ca3af" />
-                  <Text style={{ color: '#9ca3af', marginLeft: 12 }}>Meublé</Text>
+                  <Ionicons name="checkmark-circle-outline" size={20} color="#64748b" />
+                  <Text style={{ color: '#64748b', marginLeft: 12 }}>Meublé</Text>
                 </View>
-                <Text style={{ color: '#fff', fontWeight: '600' }}>{bien.meuble ? 'Oui' : 'Non'}</Text>
+                <Text style={{ color: '#1e293b', fontWeight: '600' }}>{bien.meuble ? 'Oui' : 'Non'}</Text>
               </View>
             </View>
           </View>
 
           {/* Description */}
           {bien.description && (
-            <View style={{ backgroundColor: '#1e293b', borderRadius: 12, padding: 16, marginBottom: 16 }}>
-              <Text style={{ color: '#fff', fontSize: 18, fontWeight: '600', marginBottom: 12 }}>
+            <View style={{ backgroundColor: '#f8fafc', borderRadius: 12, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#e2e8f0' }}>
+              <Text style={{ color: '#1e293b', fontSize: 18, fontWeight: '600', marginBottom: 12 }}>
                 Description
               </Text>
-              <Text style={{ color: '#9ca3af', lineHeight: 22 }}>{bien.description}</Text>
+              <Text style={{ color: '#64748b', lineHeight: 22 }}>{bien.description}</Text>
             </View>
           )}
 
           {/* Propriétaire */}
-          <View style={{ backgroundColor: '#1e293b', borderRadius: 12, padding: 16, marginBottom: 24 }}>
-            <Text style={{ color: '#fff', fontSize: 18, fontWeight: '600', marginBottom: 12 }}>
+          <View style={{ backgroundColor: '#f8fafc', borderRadius: 12, padding: 16, marginBottom: 24, borderWidth: 1, borderColor: '#e2e8f0' }}>
+            <Text style={{ color: '#1e293b', fontSize: 18, fontWeight: '600', marginBottom: 12 }}>
               Propriétaire
             </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -381,7 +381,7 @@ export const BienDetailScreen = ({ route, navigation }: any) => {
                 </Text>
               </View>
               <View style={{ marginLeft: 12, flex: 1 }}>
-                <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>
+                <Text style={{ color: '#1e293b', fontSize: 16, fontWeight: '600' }}>
                   {bien.prenom_proprietaire || ''} {bien.nom_proprietaire || 'Propriétaire'}
                 </Text>
                 <Text style={{ color: '#64748b', fontSize: 14 }}>Propriétaire</Text>
@@ -392,7 +392,7 @@ export const BienDetailScreen = ({ route, navigation }: any) => {
       </ScrollView>
 
       {/* Bouton de contact */}
-      <View style={{ padding: 16, backgroundColor: '#1e293b', borderTopWidth: 1, borderTopColor: '#334155' }}>
+      <View style={{ padding: 16, backgroundColor: '#ffffff', borderTopWidth: 1, borderTopColor: '#e2e8f0' }}>
         {!isOwner ? (
           <TouchableOpacity
             onPress={handleContact}

@@ -169,15 +169,15 @@ export const EditProfileScreen = ({ navigation }: any) => {
   }
 
   return (
-    <View className="flex-1 bg-dark-bg">
-      <View className="px-4 pt-12 pb-4 bg-dark-card">
+    <View style={{ flex: 1, backgroundColor: '#ffffff' }}>
+      <View style={{ paddingHorizontal: 16, paddingTop: 48, paddingBottom: 16, backgroundColor: '#f8fafc' }}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
-          className="mb-2"
+          style={{ marginBottom: 8 }}
         >
-          <Ionicons name="arrow-back" size={28} color="#fff" />
+          <Ionicons name="arrow-back" size={28} color="#1e293b" />
         </TouchableOpacity>
-        <Text className="text-white text-2xl font-bold">Modifier le profil</Text>
+        <Text style={{ color: '#1e293b', fontSize: 24, fontWeight: 'bold' }}>Modifier le profil</Text>
       </View>
       <ScrollView className="flex-1">
         <View className="px-4 py-6">

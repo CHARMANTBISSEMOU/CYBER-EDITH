@@ -133,7 +133,7 @@ export const MessagesScreen = ({ navigation }: any) => {
       <View style={{ flex: 1, marginLeft: 12 }}>
         {/* Nom et date */}
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-          <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600', flex: 1 }} numberOfLines={1}>
+          <Text style={{ color: '#1e293b', fontSize: 16, fontWeight: '600', flex: 1 }} numberOfLines={1}>
             {item.nom_interlocuteur}
           </Text>
           <Text style={{ color: '#64748b', fontSize: 12, marginLeft: 8 }}>
@@ -143,7 +143,7 @@ export const MessagesScreen = ({ navigation }: any) => {
 
         {/* Titre du bien */}
         {item.titre_bien && (
-          <Text style={{ color: '#9ca3af', fontSize: 13, marginBottom: 4 }} numberOfLines={1}>
+          <Text style={{ color: '#64748b', fontSize: 13, marginBottom: 4 }} numberOfLines={1}>
             📍 {item.titre_bien}
           </Text>
         )}
@@ -180,7 +180,7 @@ export const MessagesScreen = ({ navigation }: any) => {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#0f172a' }}>
+      <View style={{ flex: 1, backgroundColor: '#ffffff' }}>
         <View style={{ paddingHorizontal: 16, paddingTop: 60, paddingBottom: 16, backgroundColor: '#1e293b' }}>
           <Text style={{ color: '#fff', fontSize: 28, fontWeight: '700' }}>Messages</Text>
         </View>
@@ -192,12 +192,12 @@ export const MessagesScreen = ({ navigation }: any) => {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#0f172a' }}>
+    <View style={{ flex: 1, backgroundColor: '#ffffff' }}>
       {/* En-tête */}
-      <View style={{ paddingHorizontal: 16, paddingTop: 60, paddingBottom: 16, backgroundColor: '#1e293b' }}>
-        <Text style={{ color: '#fff', fontSize: 28, fontWeight: '700' }}>Messages</Text>
+      <View style={{ paddingHorizontal: 16, paddingTop: 60, paddingBottom: 16, backgroundColor: '#ffffff' }}>
+        <Text style={{ color: '#1e293b', fontSize: 28, fontWeight: '700' }}>Messages</Text>
         {conversations.length > 0 && (
-          <Text style={{ color: '#9ca3af', fontSize: 14, marginTop: 4 }}>
+          <Text style={{ color: '#64748b', fontSize: 14, marginTop: 4 }}>
             {conversations.length} conversation{conversations.length > 1 ? 's' : ''}
           </Text>
         )}
@@ -218,8 +218,8 @@ export const MessagesScreen = ({ navigation }: any) => {
         }
         ListEmptyComponent={
           <View style={{ alignItems: 'center', paddingTop: 60 }}>
-            <Ionicons name="chatbubbles-outline" size={80} color="#334155" />
-            <Text style={{ color: '#9ca3af', fontSize: 18, marginTop: 24, textAlign: 'center' }}>
+            <Ionicons name="chatbubbles-outline" size={80} color="#64748b" />
+            <Text style={{ color: '#1e293b', fontSize: 18, marginTop: 24, textAlign: 'center' }}>
               Aucune conversation
             </Text>
             <Text style={{ color: '#64748b', fontSize: 14, marginTop: 8, textAlign: 'center', paddingHorizontal: 32 }}>

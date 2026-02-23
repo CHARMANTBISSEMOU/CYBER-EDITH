@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert, Linking, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenHeader } from '../../components/ScreenHeader';
-import { paymentApi } from '../../services/paymentApi';
+import { notchpayApi } from '../../services/api';
 import api from '../../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -47,23 +47,36 @@ export const OptionBPaymentScreen = ({ navigation }: any) => {
       }
       
       // Initialiser le paiement Option B (refus GPS)
-      console.log('📞 Appel API: POST /paiements/initier?type_paiement=option_b');
-      const paymentResponse = await paymentApi.initPayment('option_b');
+      console.log('📞 Appel API: POST /notchpay/initier');
+      
+      // Récupérer les infos utilisateur
+      const userStr = await AsyncStorage.getItem('user');
+      const user = userStr ? JSON.parse(userStr) : null;
+      
+      const paymentResponse = await notchpayApi.initierPaiement({
+        montant: montant,
+        email: user?.email || 'user@example.com',
+        telephone: user?.telephone || '237677777777',
+        description: 'Paiement Option B - Refus GPS',
+        type_transaction: 'option_b',
+        id_utilisateur: user?.id_utilisateur || 'user_test',
+        id_bien: 'option_b_payment'
+      });
 
       console.log('✅ Réponse API:', JSON.stringify(paymentResponse, null, 2));
 
-      if (paymentResponse.authorization_url) {
+      if (paymentResponse.success && paymentResponse.data?.payment_url) {
         // Sauvegarder l'ID de transaction
-        if (paymentResponse.id_transaction) {
-          await AsyncStorage.setItem('pending_payment_id', paymentResponse.id_transaction);
-          console.log('💾 ID transaction sauvegardé:', paymentResponse.id_transaction);
+        if (paymentResponse.data.id_transaction) {
+          await AsyncStorage.setItem('pending_payment_id', paymentResponse.data.id_transaction);
+          console.log('💾 ID transaction sauvegardé:', paymentResponse.data.id_transaction);
         }
 
         // Ouvrir l'URL de paiement NotchPay
-        const canOpen = await Linking.canOpenURL(paymentResponse.authorization_url);
+        const canOpen = await Linking.canOpenURL(paymentResponse.data.payment_url);
         if (canOpen) {
-          console.log('🌐 Ouverture de NotchPay:', paymentResponse.authorization_url);
-          await Linking.openURL(paymentResponse.authorization_url);
+          console.log('🌐 Ouverture de NotchPay:', paymentResponse.data.payment_url);
+          await Linking.openURL(paymentResponse.data.payment_url);
           
           Alert.alert(
             'Paiement en cours',

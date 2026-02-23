@@ -278,4 +278,35 @@ export const geoApi = {
   },
 };
 
+export const notchpayApi = {
+  initierPaiement: async (paiementData: {
+    montant: number;
+    email: string;
+    telephone: string;
+    description: string;
+    type_transaction: string;
+    id_bien?: string;
+    id_utilisateur?: string;
+    currency?: string;
+  }): Promise<any> => {
+    const { data } = await api.post('/notchpay/initier', paiementData);
+    return data;
+  },
+
+  verifierPaiement: async (reference: string): Promise<any> => {
+    const { data } = await api.get(`/notchpay/verifier/${reference}`);
+    return data;
+  },
+
+  getHistoriqueUtilisateur: async (id_utilisateur: string): Promise<any> => {
+    const { data } = await api.get(`/notchpay/utilisateur/${id_utilisateur}`);
+    return data;
+  },
+
+  getPaiementsBien: async (id_bien: string): Promise<any> => {
+    const { data } = await api.get(`/notchpay/bien/${id_bien}`);
+    return data;
+  },
+};
+
 export default api;

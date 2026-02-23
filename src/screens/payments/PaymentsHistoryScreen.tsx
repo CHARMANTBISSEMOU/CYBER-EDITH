@@ -9,7 +9,8 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { paymentApi } from '../../services/paymentApi';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { notchpayApi } from '../../services/api';
 
 export const PaymentsHistoryScreen = ({ navigation }: any) => {
   const [loading, setLoading] = useState(true);
@@ -26,11 +27,16 @@ export const PaymentsHistoryScreen = ({ navigation }: any) => {
     try {
       setLoading(true);
       if (activeTab === 'historique') {
-        const response = await paymentApi.getPaymentHistory();
-        setPayments(response.paiements || []);
+        // Récupérer l'ID utilisateur depuis AsyncStorage
+        const userStr = await AsyncStorage.getItem('user');
+        const user = userStr ? JSON.parse(userStr) : null;
+        if (user) {
+          const response = await notchpayApi.getHistoriqueUtilisateur(user.id_utilisateur);
+          setPayments(response.data || []);
+        }
       } else {
-        const response = await paymentApi.getMyRevenue();
-        setRevenues(response);
+        // TODO: Implémenter getMyRevenue avec NotchPay
+        setRevenues(null);
       }
     } catch (error: any) {
       console.error('Erreur chargement paiements:', error);
@@ -48,18 +54,18 @@ export const PaymentsHistoryScreen = ({ navigation }: any) => {
 
   const getStatusColor = (statut: string) => {
     switch (statut) {
-      case 'complete': return '#10b981';
+      case 'succès': return '#10b981';
       case 'en_attente': return '#f59e0b';
-      case 'echoue': return '#ef4444';
+      case 'échoué': return '#ef4444';
       default: return '#6b7280';
     }
   };
 
   const getStatusLabel = (statut: string) => {
     switch (statut) {
-      case 'complete': return 'Complété';
+      case 'succès': return 'Succès';
       case 'en_attente': return 'En attente';
-      case 'echoue': return 'Échoué';
+      case 'échoué': return 'Échoué';
       default: return statut;
     }
   };
@@ -76,18 +82,20 @@ export const PaymentsHistoryScreen = ({ navigation }: any) => {
   };
 
   const renderPayment = ({ item }: any) => {
-    const isIncoming = item.type_paiement === 'loyer_recu';
+    const isIncoming = item.type_transaction === 'loyer_recu';
     const statusColor = getStatusColor(item.statut);
 
     return (
       <View
         style={{
-          backgroundColor: '#1e293b',
+          backgroundColor: '#f8fafc',
           borderRadius: 12,
           padding: 16,
           marginBottom: 12,
           borderLeftWidth: 4,
           borderLeftColor: isIncoming ? '#10b981' : '#3b82f6',
+          borderWidth: 1,
+          borderColor: '#e2e8f0',
         }}
       >
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -98,21 +106,21 @@ export const PaymentsHistoryScreen = ({ navigation }: any) => {
                 size={20}
                 color={isIncoming ? '#10b981' : '#3b82f6'}
               />
-              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600', marginLeft: 8 }}>
-                {item.type_paiement === 'loyer_recu' && 'Loyer reçu'}
-                {item.type_paiement === 'loyer_paye' && 'Loyer payé'}
-                {item.type_paiement === 'option_b' && 'Option B'}
-                {item.type_paiement === 'frais_detection' && 'Frais détection'}
+              <Text style={{ color: '#1e293b', fontSize: 16, fontWeight: '600', marginLeft: 8 }}>
+                {item.type_transaction === 'publication' && 'Publication bien'}
+                {item.type_transaction === 'guide' && 'Guide visite'}
+                {item.type_transaction === 'commission' && 'Commission'}
+                {item.type_transaction === 'abonnement' && 'Abonnement'}
               </Text>
             </View>
-            <Text style={{ color: '#9ca3af', fontSize: 13 }}>
-              {formatDate(item.date_paiement)}
+            <Text style={{ color: '#64748b', fontSize: 13 }}>
+              {formatDate(item.date_transaction)}
             </Text>
           </View>
           <View style={{ alignItems: 'flex-end' }}>
             <Text
               style={{
-                color: isIncoming ? '#10b981' : '#fff',
+                color: isIncoming ? '#10b981' : '#1e293b',
                 fontSize: 18,
                 fontWeight: '700',
               }}
@@ -135,18 +143,18 @@ export const PaymentsHistoryScreen = ({ navigation }: any) => {
           </View>
         </View>
 
-        {item.bien && (
-          <View style={{ paddingTop: 12, borderTopWidth: 1, borderTopColor: '#334155' }}>
-            <Text style={{ color: '#9ca3af', fontSize: 12 }}>Bien concerné</Text>
-            <Text style={{ color: '#fff', fontSize: 14, marginTop: 4 }}>
-              {item.bien.titre}
+        {item.id_bien && item.id_bien !== 'bien_test' && (
+          <View style={{ paddingTop: 12, borderTopWidth: 1, borderTopColor: '#e2e8f0' }}>
+            <Text style={{ color: '#64748b', fontSize: 12 }}>Bien concerné</Text>
+            <Text style={{ color: '#1e293b', fontSize: 14, marginTop: 4 }}>
+              {item.id_bien}
             </Text>
           </View>
         )}
 
         {item.reference_notchpay && (
           <View style={{ marginTop: 8 }}>
-            <Text style={{ color: '#9ca3af', fontSize: 11 }}>
+            <Text style={{ color: '#94a3b8', fontSize: 11 }}>
               Réf: {item.reference_notchpay}
             </Text>
           </View>
@@ -157,12 +165,12 @@ export const PaymentsHistoryScreen = ({ navigation }: any) => {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#0f172a' }}>
-        <View style={{ paddingHorizontal: 16, paddingTop: 60, paddingBottom: 16, backgroundColor: '#1e293b' }}>
+      <View style={{ flex: 1, backgroundColor: '#ffffff' }}>
+        <View style={{ paddingHorizontal: 16, paddingTop: 60, paddingBottom: 16, backgroundColor: '#f8fafc' }}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color="#fff" />
+            <Ionicons name="arrow-back" size={24} color="#1e293b" />
           </TouchableOpacity>
-          <Text style={{ color: '#fff', fontSize: 28, fontWeight: '700', marginTop: 16 }}>
+          <Text style={{ color: '#1e293b', fontSize: 28, fontWeight: '700', marginTop: 16 }}>
             Paiements
           </Text>
         </View>
@@ -174,13 +182,13 @@ export const PaymentsHistoryScreen = ({ navigation }: any) => {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#0f172a' }}>
+    <View style={{ flex: 1, backgroundColor: '#ffffff' }}>
       {/* En-tête */}
-      <View style={{ paddingHorizontal: 16, paddingTop: 60, paddingBottom: 16, backgroundColor: '#1e293b' }}>
+      <View style={{ paddingHorizontal: 16, paddingTop: 60, paddingBottom: 16, backgroundColor: '#f8fafc' }}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#fff" />
+          <Ionicons name="arrow-back" size={24} color="#1e293b" />
         </TouchableOpacity>
-        <Text style={{ color: '#fff', fontSize: 28, fontWeight: '700', marginTop: 16 }}>
+        <Text style={{ color: '#1e293b', fontSize: 28, fontWeight: '700', marginTop: 16 }}>
           Paiements
         </Text>
 
@@ -192,13 +200,15 @@ export const PaymentsHistoryScreen = ({ navigation }: any) => {
               flex: 1,
               paddingVertical: 12,
               borderRadius: 8,
-              backgroundColor: activeTab === 'historique' ? '#3b82f6' : '#334155',
+              backgroundColor: activeTab === 'historique' ? '#3b82f6' : '#f1f5f9',
+              borderWidth: 1,
+              borderColor: '#e2e8f0',
               alignItems: 'center',
             }}
           >
             <Text
               style={{
-                color: '#fff',
+                color: activeTab === 'historique' ? '#fff' : '#64748b',
                 fontSize: 14,
                 fontWeight: activeTab === 'historique' ? '600' : '400',
               }}
@@ -212,13 +222,15 @@ export const PaymentsHistoryScreen = ({ navigation }: any) => {
               flex: 1,
               paddingVertical: 12,
               borderRadius: 8,
-              backgroundColor: activeTab === 'revenus' ? '#3b82f6' : '#334155',
+              backgroundColor: activeTab === 'revenus' ? '#3b82f6' : '#f1f5f9',
+              borderWidth: 1,
+              borderColor: '#e2e8f0',
               alignItems: 'center',
             }}
           >
             <Text
               style={{
-                color: '#fff',
+                color: activeTab === 'revenus' ? '#fff' : '#64748b',
                 fontSize: 14,
                 fontWeight: activeTab === 'revenus' ? '600' : '400',
               }}
@@ -241,8 +253,8 @@ export const PaymentsHistoryScreen = ({ navigation }: any) => {
           }
           ListEmptyComponent={
             <View style={{ alignItems: 'center', paddingTop: 60 }}>
-              <Ionicons name="wallet-outline" size={80} color="#334155" />
-              <Text style={{ color: '#9ca3af', fontSize: 18, marginTop: 24, textAlign: 'center' }}>
+              <Ionicons name="wallet-outline" size={80} color="#94a3b8" />
+              <Text style={{ color: '#64748b', fontSize: 18, marginTop: 24, textAlign: 'center' }}>
                 Aucun paiement
               </Text>
             </View>
@@ -251,14 +263,14 @@ export const PaymentsHistoryScreen = ({ navigation }: any) => {
       ) : (
         <View style={{ padding: 16 }}>
           {/* Carte Revenus */}
-          <View style={{ backgroundColor: '#1e293b', borderRadius: 16, padding: 20, marginBottom: 16 }}>
+          <View style={{ backgroundColor: '#f8fafc', borderRadius: 16, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#e2e8f0' }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
               <View
                 style={{
                   width: 48,
                   height: 48,
                   borderRadius: 24,
-                  backgroundColor: '#10b98120',
+                  backgroundColor: '#dcfce7',
                   alignItems: 'center',
                   justifyContent: 'center',
                   marginRight: 12,
@@ -267,8 +279,8 @@ export const PaymentsHistoryScreen = ({ navigation }: any) => {
                 <Ionicons name="trending-up" size={24} color="#10b981" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: '#9ca3af', fontSize: 13 }}>Revenus totaux</Text>
-                <Text style={{ color: '#fff', fontSize: 28, fontWeight: '700', marginTop: 4 }}>
+                <Text style={{ color: '#64748b', fontSize: 13 }}>Revenus totaux</Text>
+                <Text style={{ color: '#1e293b', fontSize: 28, fontWeight: '700', marginTop: 4 }}>
                   {revenues?.total_revenus?.toLocaleString() || 0} FCFA
                 </Text>
               </View>
@@ -276,13 +288,13 @@ export const PaymentsHistoryScreen = ({ navigation }: any) => {
 
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
               <View>
-                <Text style={{ color: '#9ca3af', fontSize: 13 }}>Ce mois</Text>
-                <Text style={{ color: '#fff', fontSize: 18, fontWeight: '600', marginTop: 4 }}>
+                <Text style={{ color: '#64748b', fontSize: 13 }}>Ce mois</Text>
+                <Text style={{ color: '#1e293b', fontSize: 18, fontWeight: '600', marginTop: 4 }}>
                   {revenues?.revenus_mois?.toLocaleString() || 0} FCFA
                 </Text>
               </View>
               <View>
-                <Text style={{ color: '#9ca3af', fontSize: 13 }}>En attente</Text>
+                <Text style={{ color: '#64748b', fontSize: 13 }}>En attente</Text>
                 <Text style={{ color: '#f59e0b', fontSize: 18, fontWeight: '600', marginTop: 4 }}>
                   {revenues?.revenus_en_attente?.toLocaleString() || 0} FCFA
                 </Text>
@@ -293,32 +305,34 @@ export const PaymentsHistoryScreen = ({ navigation }: any) => {
           {/* Statistiques par bien */}
           {revenues?.par_bien && revenues.par_bien.length > 0 && (
             <>
-              <Text style={{ color: '#fff', fontSize: 20, fontWeight: '700', marginBottom: 16 }}>
+              <Text style={{ color: '#1e293b', fontSize: 20, fontWeight: '700', marginBottom: 16 }}>
                 Par bien
               </Text>
               {revenues.par_bien.map((bien: any, index: number) => (
                 <View
                   key={index}
                   style={{
-                    backgroundColor: '#1e293b',
+                    backgroundColor: '#f8fafc',
                     borderRadius: 12,
                     padding: 16,
                     marginBottom: 12,
+                    borderWidth: 1,
+                    borderColor: '#e2e8f0',
                   }}
                 >
-                  <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600', marginBottom: 8 }}>
+                  <Text style={{ color: '#1e293b', fontSize: 16, fontWeight: '600', marginBottom: 8 }}>
                     {bien.titre}
                   </Text>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                     <View>
-                      <Text style={{ color: '#9ca3af', fontSize: 12 }}>Revenus</Text>
+                      <Text style={{ color: '#64748b', fontSize: 12 }}>Revenus</Text>
                       <Text style={{ color: '#10b981', fontSize: 16, fontWeight: '600', marginTop: 4 }}>
                         {bien.total_revenus?.toLocaleString()} FCFA
                       </Text>
                     </View>
                     <View>
-                      <Text style={{ color: '#9ca3af', fontSize: 12 }}>Paiements</Text>
-                      <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600', marginTop: 4 }}>
+                      <Text style={{ color: '#64748b', fontSize: 12 }}>Paiements</Text>
+                      <Text style={{ color: '#1e293b', fontSize: 16, fontWeight: '600', marginTop: 4 }}>
                         {bien.nombre_paiements}
                       </Text>
                     </View>

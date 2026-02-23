@@ -66,48 +66,50 @@ export const SearchScreen = ({ navigation }: any) => {
   const typeBiens = ['studio', 'maison', 'chambre', 'appartement', 'bureau', 'terrain'];
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#0f172a' }}>
+    <View style={{ flex: 1, backgroundColor: '#ffffff' }}>
       <ScrollView style={{ flex: 1 }}>
         <View style={{ padding: 16 }}>
-          <Text style={{ color: '#fff', fontSize: 24, fontWeight: '700', marginBottom: 24 }}>Recherche avancée</Text>
+          <Text style={{ color: '#1e293b', fontSize: 24, fontWeight: '700', marginBottom: 24 }}>Recherche avancée</Text>
           <View style={{ marginBottom: 16 }}>
-            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600', marginBottom: 8 }}>Ville</Text>
+            <Text style={{ color: '#1e293b', fontSize: 14, fontWeight: '600', marginBottom: 8 }}>Ville</Text>
             <TextInput
-              style={{ backgroundColor: '#1e293b', color: '#fff', padding: 12, borderRadius: 8 }}
+              style={{ backgroundColor: '#f8fafc', color: '#1e293b', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#e2e8f0' }}
               placeholder="Ex: Douala, Yaoundé..."
-              placeholderTextColor="#6b7280"
+              placeholderTextColor="#94a3b8"
               value={filters.ville}
               onChangeText={(value) => updateFilter('ville', value)}
             />
           </View>
 
           <View style={{ marginBottom: 16 }}>
-            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600', marginBottom: 8 }}>Quartier</Text>
+            <Text style={{ color: '#1e293b', fontSize: 14, fontWeight: '600', marginBottom: 8 }}>Quartier</Text>
             <TextInput
-              style={{ backgroundColor: '#1e293b', color: '#fff', padding: 12, borderRadius: 8 }}
+              style={{ backgroundColor: '#f8fafc', color: '#1e293b', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#e2e8f0' }}
               placeholder="Ex: Akwa, Bonanjo..."
-              placeholderTextColor="#6b7280"
+              placeholderTextColor="#94a3b8"
               value={filters.quartier}
               onChangeText={(value) => updateFilter('quartier', value)}
             />
           </View>
 
           <View style={{ marginBottom: 16 }}>
-            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600', marginBottom: 8 }}>Type de bien</Text>
+            <Text style={{ color: '#1e293b', fontSize: 14, fontWeight: '600', marginBottom: 8 }}>Type de bien</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               {typeBiens.map((type) => (
                 <TouchableOpacity
                   key={type}
                   onPress={() => updateFilter('type_bien', filters.type_bien === type ? '' : type)}
                   style={{
-                    backgroundColor: filters.type_bien === type ? '#3b82f6' : '#1e293b',
+                    backgroundColor: filters.type_bien === type ? '#3b82f6' : '#f8fafc',
                     paddingHorizontal: 16,
                     paddingVertical: 8,
                     borderRadius: 8,
                     marginRight: 8,
+                    borderWidth: 1,
+                    borderColor: '#e2e8f0',
                   }}
                 >
-                  <Text style={{ color: filters.type_bien === type ? '#fff' : '#9ca3af', textTransform: 'capitalize' }}>
+                  <Text style={{ color: filters.type_bien === type ? '#fff' : '#1e293b', textTransform: 'capitalize' }}>
                     {type}
                   </Text>
                 </TouchableOpacity>
@@ -117,22 +119,22 @@ export const SearchScreen = ({ navigation }: any) => {
 
           <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
             <View style={{ flex: 1 }}>
-              <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600', marginBottom: 8 }}>Prix min (FCFA)</Text>
+              <Text style={{ color: '#1e293b', fontSize: 14, fontWeight: '600', marginBottom: 8 }}>Prix min (FCFA)</Text>
               <TextInput
-                style={{ backgroundColor: '#1e293b', color: '#fff', padding: 12, borderRadius: 8 }}
+                style={{ backgroundColor: '#f8fafc', color: '#1e293b', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#e2e8f0' }}
                 placeholder="0"
-                placeholderTextColor="#6b7280"
+                placeholderTextColor="#94a3b8"
                 value={filters.prix_min}
                 onChangeText={(value) => updateFilter('prix_min', value)}
                 keyboardType="numeric"
               />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600', marginBottom: 8 }}>Prix max (FCFA)</Text>
+              <Text style={{ color: '#1e293b', fontSize: 14, fontWeight: '600', marginBottom: 8 }}>Prix max (FCFA)</Text>
               <TextInput
-                style={{ backgroundColor: '#1e293b', color: '#fff', padding: 12, borderRadius: 8 }}
+                style={{ backgroundColor: '#f8fafc', color: '#1e293b', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#e2e8f0' }}
                 placeholder="1000000"
-                placeholderTextColor="#6b7280"
+                placeholderTextColor="#94a3b8"
                 value={filters.prix_max}
                 onChangeText={(value) => updateFilter('prix_max', value)}
                 keyboardType="numeric"
@@ -141,11 +143,11 @@ export const SearchScreen = ({ navigation }: any) => {
           </View>
 
           <View style={{ marginBottom: 16 }}>
-            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600', marginBottom: 8 }}>Nombre de chambres minimum</Text>
+            <Text style={{ color: '#1e293b', fontSize: 14, fontWeight: '600', marginBottom: 8 }}>Nombre de chambres minimum</Text>
             <TextInput
-              style={{ backgroundColor: '#1e293b', color: '#fff', padding: 12, borderRadius: 8 }}
+              style={{ backgroundColor: '#f8fafc', color: '#1e293b', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#e2e8f0' }}
               placeholder="0"
-              placeholderTextColor="#6b7280"
+              placeholderTextColor="#94a3b8"
               value={filters.chambres_min}
               onChangeText={(value) => updateFilter('chambres_min', value)}
               keyboardType="numeric"
@@ -153,18 +155,20 @@ export const SearchScreen = ({ navigation }: any) => {
           </View>
 
           <View style={{ marginBottom: 16 }}>
-            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600', marginBottom: 8 }}>Meublé</Text>
+            <Text style={{ color: '#1e293b', fontSize: 14, fontWeight: '600', marginBottom: 8 }}>Meublé</Text>
             <View style={{ flexDirection: 'row', gap: 12 }}>
               <TouchableOpacity
                 onPress={() => updateFilter('meuble', filters.meuble === true ? undefined : true)}
                 style={{
                   flex: 1,
-                  backgroundColor: filters.meuble === true ? '#3b82f6' : '#1e293b',
+                  backgroundColor: filters.meuble === true ? '#3b82f6' : '#f8fafc',
                   padding: 12,
                   borderRadius: 8,
+                  borderWidth: 1,
+                  borderColor: '#e2e8f0',
                 }}
               >
-                <Text style={{ color: filters.meuble === true ? '#fff' : '#9ca3af', textAlign: 'center', fontWeight: '600' }}>
+                <Text style={{ color: filters.meuble === true ? '#fff' : '#1e293b', textAlign: 'center', fontWeight: '600' }}>
                   Oui
                 </Text>
               </TouchableOpacity>
@@ -172,12 +176,14 @@ export const SearchScreen = ({ navigation }: any) => {
                 onPress={() => updateFilter('meuble', filters.meuble === false ? undefined : false)}
                 style={{
                   flex: 1,
-                  backgroundColor: filters.meuble === false ? '#3b82f6' : '#1e293b',
+                  backgroundColor: filters.meuble === false ? '#3b82f6' : '#f8fafc',
                   padding: 12,
                   borderRadius: 8,
+                  borderWidth: 1,
+                  borderColor: '#e2e8f0',
                 }}
               >
-                <Text style={{ color: filters.meuble === false ? '#fff' : '#9ca3af', textAlign: 'center', fontWeight: '600' }}>
+                <Text style={{ color: filters.meuble === false ? '#fff' : '#1e293b', textAlign: 'center', fontWeight: '600' }}>
                   Non
                 </Text>
               </TouchableOpacity>
@@ -187,14 +193,14 @@ export const SearchScreen = ({ navigation }: any) => {
           <View style={{ flexDirection: 'row', gap: 12, marginTop: 24 }}>
             <TouchableOpacity
               onPress={resetFilters}
-              style={{ flex: 1, backgroundColor: '#1e293b', padding: 16, borderRadius: 8 }}
+              style={{ flex: 1, backgroundColor: '#f8fafc', padding: 16, borderRadius: 8, borderWidth: 1, borderColor: '#e2e8f0' }}
             >
-              <Text style={{ color: '#9ca3af', textAlign: 'center', fontWeight: '600' }}>Réinitialiser</Text>
+              <Text style={{ color: '#1e293b', textAlign: 'center', fontWeight: '600' }}>Réinitialiser</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleSearch}
               disabled={isLoading}
-              style={{ flex: 1, backgroundColor: isLoading ? '#6b7280' : '#3b82f6', padding: 16, borderRadius: 8 }}
+              style={{ flex: 1, backgroundColor: isLoading ? '#94a3b8' : '#3b82f6', padding: 16, borderRadius: 8 }}
             >
               {isLoading ? (
                 <ActivityIndicator size="small" color="#fff" />
