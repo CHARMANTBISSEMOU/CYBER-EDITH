@@ -1,7 +1,7 @@
 # Ce fichier dit à Python que "routes" est un package (un dossier de code)
 
 # Importer tous les modules pour qu'ils soient disponibles
-from . import images
+from . import medias
 from . import utilisateurs
 from . import biens
 from . import contrats
