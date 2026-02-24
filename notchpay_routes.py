@@ -244,7 +244,7 @@ async def notchpay_webhook(request: Request, db: Session = Depends(get_db)):
         
         # 7. Mettre à jour le statut
         if status == "successful":
-            transaction.statut = "succès"
+            transaction.statut = "reussi"
             print("✅ Paiement réussi !")
             
             # TODO: Ajouter la logique métier ici
@@ -253,11 +253,11 @@ async def notchpay_webhook(request: Request, db: Session = Depends(get_db)):
             # - Envoyer une confirmation
             
         elif status == "failed":
-            transaction.statut = "échoué"
+            transaction.statut = "echoue"
             print("❌ Paiement échoué !")
             
         elif status == "cancelled":
-            transaction.statut = "annulé"
+            transaction.statut = "annule"
             print("🚫 Paiement annulé !")
         
         db.commit()
