@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from typing import Optional
 import requests
 import uuid
 import hashlib
@@ -10,7 +11,8 @@ import sys
 sys.path.append('..')
 
 from database import get_db
-from models import Transaction
+from models import Transaction, Bien, Utilisateur
+from auth import obtenir_utilisateur_actuel
 from notchpay_config import (
     NOTCHPAY_PUBLIC_KEY,
     NOTCHPAY_PRIVATE_KEY, 
@@ -31,9 +33,11 @@ class NotchPayPaiementRequest(BaseModel):
     telephone: str       # Numéro de téléphone
     description: str     # Description du paiement
     type_transaction: str # publication, guide, commission, abonnement
-    id_bien: str = "bien_test"
-    id_utilisateur: str = "user_test"
+    id_bien: Optional[str] = None
     currency: str = "XAF"  # Devise par défaut
+
+    class Config:
+        extra = "ignore"
 
 
 # ============================================
@@ -42,6 +46,7 @@ class NotchPayPaiementRequest(BaseModel):
 @router.post("/initier")
 async def initier_paiement(
     paiement: NotchPayPaiementRequest,
+    utilisateur_actuel: Utilisateur = Depends(obtenir_utilisateur_actuel),
     db: Session = Depends(get_db)
 ):
     """
@@ -108,16 +113,20 @@ async def initier_paiement(
             "guide",
             "commission",
             "penalite",
-            "loyer",
-            "reversement",
         }
         if type_transaction not in types_supportes:
             type_transaction = "publication"
 
+        id_bien = paiement.id_bien
+        if id_bien:
+            bien = db.query(Bien).filter(Bien.id_bien == id_bien).first()
+            if not bien:
+                id_bien = None
+
         new_transaction = Transaction(
             id_transaction=str(uuid.uuid4()),
-            id_utilisateur=paiement.id_utilisateur,
-            id_bien=paiement.id_bien,
+            id_utilisateur=utilisateur_actuel.id_utilisateur,
+            id_bien=id_bien,
             montant=paiement.montant,
             type_transaction=type_transaction,
             reference_campay=notchpay_result.get("reference", reference),
