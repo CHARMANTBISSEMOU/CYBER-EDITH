@@ -9,7 +9,8 @@ import json
 import sys
 sys.path.append('..')
 
-from database import get_db, Transaction
+from database import get_db
+from models import Transaction
 from notchpay_config import (
     NOTCHPAY_PRIVATE_KEY, 
     NOTCHPAY_HASH_KEY, 
