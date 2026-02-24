@@ -7,6 +7,14 @@ import uuid
 import hashlib
 import hmac
 import json
+import os
+import smtplib
+from io import BytesIO
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.application import MIMEApplication
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
 import sys
 sys.path.append('..')
 
@@ -22,6 +30,84 @@ from notchpay_config import (
 )
 
 router = APIRouter(prefix="/notchpay", tags=["NotchPay"])
+
+
+EMAIL_CONFIG = {
+    "SMTP_SERVER": os.getenv("SMTP_SERVER", "smtp.gmail.com"),
+    "SMTP_PORT": int(os.getenv("SMTP_PORT", "587")),
+    "EMAIL_USER": os.getenv("EMAIL_USER", ""),
+    "EMAIL_PASSWORD": os.getenv("EMAIL_PASSWORD", ""),
+    "FROM_EMAIL": os.getenv("FROM_EMAIL", "noreply@appimobilier.com"),
+}
+
+
+def _generate_invoice_pdf_bytes(
+    reference: str,
+    montant: int,
+    email: str,
+    nom_client: str,
+    description: str,
+    id_transaction: str,
+):
+    buffer = BytesIO()
+    c = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
+
+    c.setFont("Helvetica-Bold", 18)
+    c.drawString(40, height - 60, "FACTURE DE PAIEMENT")
+
+    c.setFont("Helvetica", 11)
+    y = height - 110
+    lines = [
+        f"Référence NotchPay: {reference}",
+        f"Transaction ID: {id_transaction}",
+        f"Montant: {montant} FCFA",
+        f"Client: {nom_client}",
+        f"Email: {email}",
+        f"Description: {description}",
+    ]
+    for line in lines:
+        c.drawString(40, y, line)
+        y -= 18
+
+    c.setFont("Helvetica", 10)
+    c.drawString(40, 60, "Merci pour votre paiement.")
+    c.showPage()
+    c.save()
+
+    pdf_bytes = buffer.getvalue()
+    buffer.close()
+    return pdf_bytes
+
+
+def _send_invoice_email(to_email: str, pdf_bytes: bytes, filename: str, subject: str, body: str):
+    try:
+        if not EMAIL_CONFIG["EMAIL_USER"] or not EMAIL_CONFIG["EMAIL_PASSWORD"]:
+            print(f"📧 MODE TEST - Facture simulée vers {to_email} (pas de SMTP configuré)")
+            return True
+
+        msg = MIMEMultipart()
+        msg["From"] = EMAIL_CONFIG["FROM_EMAIL"]
+        msg["To"] = to_email
+        msg["Subject"] = subject
+        msg.attach(MIMEText(body, "plain"))
+
+        attachment = MIMEApplication(pdf_bytes, _subtype="pdf")
+        attachment.add_header("Content-Disposition", "attachment", filename=filename)
+        msg.attach(attachment)
+
+        server = smtplib.SMTP(EMAIL_CONFIG["SMTP_SERVER"], EMAIL_CONFIG["SMTP_PORT"])
+        server.starttls()
+        server.login(EMAIL_CONFIG["EMAIL_USER"], EMAIL_CONFIG["EMAIL_PASSWORD"])
+        server.send_message(msg)
+        server.quit()
+        return True
+    except Exception as e:
+        print(f"Erreur envoi facture email: {e}")
+        if not EMAIL_CONFIG["EMAIL_USER"] or not EMAIL_CONFIG["EMAIL_PASSWORD"]:
+            print(f"📧 MODE TEST - Simulation réussie pour {to_email}")
+            return True
+        return False
 
 
 # ============================================
@@ -255,6 +341,39 @@ async def notchpay_webhook(request: Request, db: Session = Depends(get_db)):
         if status == "successful":
             transaction.statut = "reussi"
             print("✅ Paiement réussi !")
+
+            try:
+                utilisateur = db.query(Utilisateur).filter(
+                    Utilisateur.id_utilisateur == transaction.id_utilisateur
+                ).first()
+
+                to_email = (utilisateur.email if utilisateur and getattr(utilisateur, "email", None) else None) or email
+                nom_client = (
+                    f"{utilisateur.prenom} {utilisateur.nom}".strip()
+                    if utilisateur and getattr(utilisateur, "prenom", None) and getattr(utilisateur, "nom", None)
+                    else "Client"
+                )
+
+                if to_email:
+                    pdf_bytes = _generate_invoice_pdf_bytes(
+                        reference=reference,
+                        montant=int(montant) if montant is not None else int(transaction.montant),
+                        email=to_email,
+                        nom_client=nom_client,
+                        description=transaction.description or "Paiement",
+                        id_transaction=transaction.id_transaction,
+                    )
+                    filename = f"facture_{reference}.pdf"
+                    subject = "Votre facture de paiement"
+                    body = (
+                        "Bonjour,\n\n"
+                        "Veuillez trouver en pièce jointe votre facture de paiement.\n\n"
+                        "Cordialement,\n"
+                        "App Immobilier"
+                    )
+                    _send_invoice_email(to_email, pdf_bytes, filename, subject, body)
+            except Exception as e:
+                print(f"Erreur génération/envoi facture: {e}")
             
             # TODO: Ajouter la logique métier ici
             # - Activer le bien
