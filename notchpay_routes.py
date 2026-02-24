@@ -108,12 +108,11 @@ async def initier_paiement(
             "guide",
             "commission",
             "penalite",
-            "service",
             "loyer",
             "reversement",
         }
         if type_transaction not in types_supportes:
-            type_transaction = "service"
+            type_transaction = "publication"
 
         new_transaction = Transaction(
             id_transaction=str(uuid.uuid4()),
