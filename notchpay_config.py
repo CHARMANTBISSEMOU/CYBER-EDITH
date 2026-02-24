@@ -1,0 +1,10 @@
+# Configuration NotchPay
+NOTCHPAY_PUBLIC_KEY = "pk.X1uu9IxAVcfSgE1UxTvWrMgAxYTspKpXDB92BDCv2CZPZTopIVlLR4HYzPOAZwp3lVbTBHjxUnoU4DgrolWJX89dTUd4AgSGub41oSzI9YWr4APYhctTHToGlSMIx"
+NOTCHPAY_PRIVATE_KEY = "sk.tnkTfRl9X3C8n1tfoijmxNtOJPBDG22fxcaC245RvLF3Q6mmx0rm2Isf9V2jutMPeedb6i3KhReufzczxOaUAbUgBAfImxgvsMbmhByzaf7ihvsIvxzD2ImpAe50x"
+NOTCHPAY_HASH_KEY = "hsk.ZZ32NZ8lRn5coP8Gz6d8skCBAv2Jwf4sXMMQe1Q7D9076TTA8MpVT3KHxPdoC2U5K4W6nJTpPuVSN4sI4Aw4JFcG8HOgQ0IUUD8mDZUS4Y1V3ZVM24Jq97CL47lbG"
+
+# URL API NotchPay (PRODUCTION)
+NOTCHPAY_BASE_URL = "https://api.notchpay.co"
+
+# URL Webhook pour recevoir les notifications
+NOTCHPAY_WEBHOOK_URL = "https://votre-backend.com/webhooks/notchpay"

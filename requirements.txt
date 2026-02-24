@@ -1,44 +1,12 @@
-# ============================================
-# DÉPENDANCES APP IMMOBILIÈRE
-# Compatible Python 3.14
-# ============================================
-
-# --- Framework web ---
 fastapi
 uvicorn
-
-# --- Base de données ---
-sqlalchemy
-pymysql
-cryptography
-
-# --- Authentification ---
-python-jose[cryptography]
-passlib[bcrypt]
 python-multipart
-
-# --- Variables d'environnement ---
-python-dotenv
-
-# --- Images (Cloudinary) ---
+pillow
 cloudinary
-Pillow
-
-# --- Paiements (NotchPay) ---
+pymysql
+sqlalchemy
 requests
-
-# --- IA (Génération contrats PDF) ---
-anthropic
-reportlab
-
-# --- Email ---
-aiosmtplib
-
-# --- WebSocket (Chat temps réel) ---
-websockets
-
-# --- Traductions ---
-babel
-
-# --- Utilitaires ---
-pydantic[email]
+python-jose[cryptography]  # Pour JWT si nécessaire
+passlib[bcrypt]  # Pour le hashage si nécessaire
+email-validator  # Pour valider les emails
+phonenumbers  # Pour valider les numéros de téléphone

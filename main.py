@@ -1,61 +1,71 @@
-"""
-main.py — Le point d'entrée de l'application
-
-C'est le fichier qui démarre tout.
-Commande pour lancer : uvicorn main:app --reload
-
-Après le lancement, tu peux tester sur :
-- http://localhost:8000/docs  → Interface Swagger (tester les routes visuellement)
-- http://localhost:8000/      → Message d'accueil
-"""
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from routes import images
+import notchpay_routes  # Import des routes NotchPay
+import config
+import os
+from database_updated import create_tables
+from datetime import datetime
 
-# Importer les routes
-from routes.utilisateurs import routeur as routeur_utilisateurs
-from routes.biens import routeur as routeur_biens
-from routes.medias import routeur as routeur_medias
-from routes.messages import routeur as routeur_messages
-from routes.contrats import routeur as routeur_contrats
-from routes.geolocalisation import routeur as routeur_geo
-from routes.paiements import routeur as routeur_paiements
-from routes.notifications import routeur as routeur_notifications
-# Créer l'application FastAPI
 app = FastAPI(
-    title="App Immobilière API",
-    description="API backend pour l'application immobilière camerounaise",
-    version="1.0.0"
+    title="API Immobilier - NotchPay",
+    description="API de gestion immobilière avec paiements NotchPay",
+    version="2.0.0"
 )
 
-# --- Configuration CORS ---
-# Permet au frontend (qui tourne sur un autre port) de communiquer avec le backend
+# CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # En production, mettre les vrais domaines
-    allow_credentials=True,
-    allow_methods=["*"],   # GET, POST, PUT, DELETE, etc.
-    allow_headers=["*"],   # Tous les headers (dont Authorization pour le JWT)
+    allow_origins=["*"],  # En production, spécifier vos domaines
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-# --- Enregistrer les routes ---
-app.include_router(routeur_utilisateurs)
-app.include_router(routeur_biens)
-app.include_router(routeur_medias)
-app.include_router(routeur_messages)
-app.include_router(routeur_contrats)
-app.include_router(routeur_geo)
-app.include_router(routeur_paiements)
-app.include_router(routeur_notifications)
+# Créer les tables au démarrage
+create_tables()
 
+# Inclure les routes
+app.include_router(images.router)
+app.include_router(notchpay_routes.router)  # Routes NotchPay
 
-
-# --- Route d'accueil ---
-@app.get("/", tags=["Accueil"])
-def accueil():
-    """Page d'accueil de l'API — juste pour vérifier que le serveur tourne."""
+@app.get("/")
+def root():
     return {
-        "message": "Bienvenue sur l'API App Immobilière ! 🏠",
-        "documentation": "Va sur /docs pour voir toutes les routes disponibles.",
-        "version": "1.0.0"
+        "message": "API Immobilier - NotchPay",
+        "version": "2.0.0",
+        "routes": {
+            "images": {
+                "upload_photo": "POST /images/upload",
+                "upload_video": "POST /images/videos/upload",
+                "get_images": "GET /images/bien/{id_bien}",
+                "delete_image": "DELETE /images/delete/{public_id}"
+            },
+            "paiements": {
+                "initier": "POST /notchpay/initier",
+                "verifier": "GET /notchpay/verifier/{reference}",
+                "webhook": "POST /notchpay/webhook",
+                "historique_utilisateur": "GET /notchpay/utilisateur/{id_utilisateur}",
+                "paiements_bien": "GET /notchpay/bien/{id_bien}"
+            },
+            "docs": "/docs"
+        }
     }
+
+@app.get("/health")
+def health_check():
+    """
+    Vérifier si l'API fonctionne
+    """
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "version": "2.0.0"
+    }
+
+if __name__ == "__main__":
+    import uvicorn
+    from datetime import datetime
+    
+    print("🚀 Lancement de l'API avec NotchPay...")
+    print("📚 Documentation disponible sur: http://localhost:8000/docs")
+    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))
