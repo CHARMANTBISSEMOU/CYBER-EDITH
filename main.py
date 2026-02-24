@@ -1,10 +1,19 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routes import images, utilisateurs, biens, contrats, geolocalisation, medias, messages, notifications, paiements, webhooks
+import routes.images as images
+import routes.utilisateurs as utilisateurs
+import routes.biens as biens
+import routes.contrats as contrats
+import routes.geolocalisation as geolocalisation
+import routes.medias as medias
+import routes.messages as messages
+import routes.notifications as notifications
+import routes.paiements as paiements
+import routes.webhooks as webhooks
 import notchpay_routes  # Import des routes NotchPay
 import config
 import os
-from database_updated import create_tables
+from database import create_tables
 from datetime import datetime
 
 app = FastAPI(
@@ -25,16 +34,16 @@ app.add_middleware(
 create_tables()
 
 # Inclure les routes
-app.include_router(images.router)
-app.include_router(utilisateurs.router)
-app.include_router(biens.router)
-app.include_router(contrats.router)
-app.include_router(geolocalisation.router)
-app.include_router(medias.router)
-app.include_router(messages.router)
-app.include_router(notifications.router)
-app.include_router(paiements.router)
-app.include_router(webhooks.router)
+app.include_router(images.routeur)
+app.include_router(utilisateurs.routeur)
+app.include_router(biens.routeur)
+app.include_router(contrats.routeur)
+app.include_router(geolocalisation.routeur)
+app.include_router(medias.routeur)
+app.include_router(messages.routeur)
+app.include_router(notifications.routeur)
+app.include_router(paiements.routeur)
+app.include_router(webhooks.routeur)
 app.include_router(notchpay_routes.router)  # Routes NotchPay
 
 @app.get("/")
