@@ -101,17 +101,29 @@ async def initier_paiement(
         
         # Sauvegarder en BDD
         print("💾 Sauvegarde en BDD...")
+
+        type_transaction = paiement.type_transaction
+        types_supportes = {
+            "publication",
+            "guide",
+            "commission",
+            "penalite",
+            "service",
+            "loyer",
+            "reversement",
+        }
+        if type_transaction not in types_supportes:
+            type_transaction = "service"
+
         new_transaction = Transaction(
             id_transaction=str(uuid.uuid4()),
             id_utilisateur=paiement.id_utilisateur,
             id_bien=paiement.id_bien,
             montant=paiement.montant,
-            type_transaction=paiement.type_transaction,
-            reference_notchpay=notchpay_result.get("reference", reference),
+            type_transaction=type_transaction,
+            reference_campay=notchpay_result.get("reference", reference),
             statut="en_attente",
-            description=paiement.description,
-            email_client=paiement.email,
-            telephone_client=paiement.telephone
+            description=paiement.description
         )
         db.add(new_transaction)
         db.commit()
@@ -124,7 +136,7 @@ async def initier_paiement(
             "message": "Paiement initié avec succès",
             "data": {
                 "id_transaction": new_transaction.id_transaction,
-                "reference_notchpay": new_transaction.reference_notchpay,
+                "reference_notchpay": new_transaction.reference_campay,
                 "statut": "en_attente",
                 "montant": paiement.montant,
                 "authorization_url": notchpay_result.get("authorization_url"),
@@ -224,7 +236,7 @@ async def notchpay_webhook(request: Request, db: Session = Depends(get_db)):
         
         # 6. Mettre à jour la transaction en BDD
         transaction = db.query(Transaction).filter(
-            Transaction.reference_notchpay == reference
+            Transaction.reference_campay == reference
         ).first()
         
         if not transaction:
@@ -282,7 +294,7 @@ async def get_paiements_utilisateur(id_utilisateur: str, db: Session = Depends(g
             "data": [
                 {
                     "id_transaction": t.id_transaction,
-                    "reference_notchpay": t.reference_notchpay,
+                    "reference_notchpay": t.reference_campay,
                     "montant": t.montant,
                     "type_transaction": t.type_transaction,
                     "statut": t.statut,
@@ -318,7 +330,7 @@ async def get_paiements_bien(id_bien: str, db: Session = Depends(get_db)):
                 {
                     "id_transaction": t.id_transaction,
                     "id_utilisateur": t.id_utilisateur,
-                    "reference_notchpay": t.reference_notchpay,
+                    "reference_notchpay": t.reference_campay,
                     "montant": t.montant,
                     "type_transaction": t.type_transaction,
                     "statut": t.statut,
