@@ -12,6 +12,7 @@ sys.path.append('..')
 from database import get_db
 from models import Transaction
 from notchpay_config import (
+    NOTCHPAY_PUBLIC_KEY,
     NOTCHPAY_PRIVATE_KEY, 
     NOTCHPAY_HASH_KEY, 
     NOTCHPAY_BASE_URL, 
@@ -53,38 +54,47 @@ async def initier_paiement(
     """
     try:
         print(f"💰 Initiation paiement NotchPay: {paiement.montant} FCFA")
+
+        if not NOTCHPAY_PUBLIC_KEY:
+            raise HTTPException(status_code=500, detail="NOTCHPAY_PUBLIC_KEY manquante")
         
         # Générer référence unique
         reference = str(uuid.uuid4())[:16]
         
         # Préparer les données pour NotchPay
         headers = {
-            "Authorization": f"Bearer {NOTCHPAY_PRIVATE_KEY}",
+            "Authorization": NOTCHPAY_PUBLIC_KEY,
             "Content-Type": "application/json"
         }
         
         data = {
             "amount": paiement.montant,
             "currency": paiement.currency,
-            "email": paiement.email,
-            "phone": paiement.telephone,
+            "customer": {
+                "email": paiement.email,
+                "phone": paiement.telephone,
+            },
             "description": paiement.description,
             "reference": reference,
-            "callback_url": NOTCHPAY_WEBHOOK_URL,
-            "return_url": "https://votre-app.com/paiement/succes",
-            "cancel_url": "https://votre-app.com/paiement/annule"
         }
+
+        if NOTCHPAY_WEBHOOK_URL:
+            data["callback"] = NOTCHPAY_WEBHOOK_URL
         
         print(f"📤 Envoi vers NotchPay...")
         response = requests.post(
-            f"{NOTCHPAY_BASE_URL}/payment",
+            f"{NOTCHPAY_BASE_URL}/payments",
             headers=headers,
-            json=data
+            json=data,
+            timeout=30,
         )
         
-        if response.status_code != 200:
+        if response.status_code not in (200, 201):
             print(f"❌ Erreur NotchPay: {response.status_code} - {response.text}")
-            raise HTTPException(status_code=500, detail="Erreur lors de l'initialisation du paiement")
+            raise HTTPException(
+                status_code=502,
+                detail=f"NotchPay error: HTTP {response.status_code} - {response.text}"
+            )
         
         notchpay_result = response.json()
         print(f"📥 Réponse NotchPay: {notchpay_result}")
@@ -117,7 +127,7 @@ async def initier_paiement(
                 "reference_notchpay": new_transaction.reference_notchpay,
                 "statut": "en_attente",
                 "montant": paiement.montant,
-                "payment_url": notchpay_result.get("payment_url"),  # URL pour rediriger le client
+                "authorization_url": notchpay_result.get("authorization_url"),
                 "reference": reference
             }
         }
@@ -125,7 +135,9 @@ async def initier_paiement(
     except Exception as e:
         print(f"❌ Erreur: {e}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        if isinstance(e, HTTPException):
+            raise
+        raise HTTPException(status_code=500, detail=f"Erreur interne init paiement: {str(e)}")
 
 
 # ============================================
@@ -138,12 +150,12 @@ async def verifier_paiement(reference: str):
     """
     try:
         headers = {
-            "Authorization": f"Bearer {NOTCHPAY_PRIVATE_KEY}",
+            "Authorization": NOTCHPAY_PUBLIC_KEY,
         }
         
         print(f"🔍 Vérification: {reference}")
         response = requests.get(
-            f"{NOTCHPAY_BASE_URL}/payment/{reference}",
+            f"{NOTCHPAY_BASE_URL}/payments/{reference}",
             headers=headers
         )
         
