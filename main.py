@@ -11,7 +11,6 @@ import routes.notifications as notifications
 import routes.paiements as paiements
 import routes.webhooks as webhooks
 import notchpay_routes  # Import des routes NotchPay
-import config
 import os
 from database import create_tables
 from datetime import datetime
