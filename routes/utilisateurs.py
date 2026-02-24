@@ -22,7 +22,7 @@ import string
 
 from database import get_db
 from models import Utilisateur
-from auth import hacher_mot_de_passe, verifier_mot_de_passe, creer_jeton_acces, obtenir_utilisateur_actuel
+from auth import hasher_mot_de_passe, verifier_mot_de_passe, creer_jeton_acces, obtenir_utilisateur_actuel
 from schemas import (
     FormulaireInscription,
     FormulaireConnexion,
@@ -114,6 +114,9 @@ def send_reset_email(email: str, reset_code: str):
 
 # Créer le routeur — toutes les routes commencent par /utilisateurs
 routeur = APIRouter(prefix="/utilisateurs", tags=["Utilisateurs"])
+
+# Alias de compatibilité (main.py utilise `utilisateurs.router`)
+router = routeur
 
 
 # ============================================
@@ -300,7 +303,7 @@ def modifier_mon_profil(
                 )
             
             # Mettre à jour le mot de passe
-            utilisateur_actuel.mot_de_passe = hacher_mot_de_passe(donnees['mot_de_passe'])
+            utilisateur_actuel.mot_de_passe = hasher_mot_de_passe(donnees['mot_de_passe'])
             print(f"✅ Mot de passe mis à jour avec succès pour l'utilisateur {utilisateur_actuel.email}")
 
     db.commit()
@@ -349,7 +352,7 @@ def changer_mot_de_passe(
         )
     
     # Mettre à jour le mot de passe
-    utilisateur_actuel.mot_de_passe = hacher_mot_de_passe(nouveau_mot_de_passe)
+    utilisateur_actuel.mot_de_passe = hasher_mot_de_passe(nouveau_mot_de_passe)
     db.commit()
     
     print(f"✅ Mot de passe mis à jour avec succès pour l'utilisateur {utilisateur_actuel.email}")
