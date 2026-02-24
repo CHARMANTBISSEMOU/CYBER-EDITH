@@ -7,6 +7,7 @@ pymysql
 sqlalchemy
 requests
 python-dotenv
+anthropic
 python-jose[cryptography]  # Pour JWT si nécessaire
 passlib[bcrypt]  # Pour le hashage si nécessaire
 email-validator  # Pour valider les emails
