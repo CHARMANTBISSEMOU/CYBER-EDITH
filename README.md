@@ -147,4 +147,5 @@ Ce projet est privé et confidentiel.
 
 ## 👥 Auteurs
 
-Développé pour le projet tutoré KEYCE
+BISSEMOU CHARLES CHARMANT 
+
