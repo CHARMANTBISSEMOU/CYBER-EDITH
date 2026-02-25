@@ -10,6 +10,7 @@ export const GeolocationScreen = ({ navigation }: any) => {
   const [loading, setLoading] = useState(true);
   const [currentLocation, setCurrentLocation] = useState<Location.LocationObject | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [subscriptionActive, setSubscriptionActive] = useState(false);
 
   useEffect(() => {
     loadGPSPreference();
@@ -17,6 +18,19 @@ export const GeolocationScreen = ({ navigation }: any) => {
 
   const loadGPSPreference = async () => {
     try {
+      const subStr = await AsyncStorage.getItem('option_b_subscription');
+      const sub = subStr ? JSON.parse(subStr) : null;
+      const active = !!sub?.valid_to && new Date(sub.valid_to).getTime() > Date.now();
+      setSubscriptionActive(active);
+
+      if (active) {
+        setGpsEnabled(false);
+        await AsyncStorage.setItem('gps_enabled', 'false');
+        setCurrentLocation(null);
+        setLocationError(null);
+        return;
+      }
+
       const saved = await AsyncStorage.getItem('gps_enabled');
       if (saved !== null) {
         const enabled = saved === 'true';
@@ -51,6 +65,14 @@ export const GeolocationScreen = ({ navigation }: any) => {
   };
 
   const handleToggleGPS = async (value: boolean) => {
+    if (subscriptionActive) {
+      Alert.alert(
+        'GPS désactivé',
+        'Votre abonnement Option B est actif. Le GPS est désactivé automatiquement.'
+      );
+      return;
+    }
+
     if (value) {
       const hasPermission = await requestLocationPermission();
       if (!hasPermission) {
@@ -115,6 +137,7 @@ export const GeolocationScreen = ({ navigation }: any) => {
               onValueChange={handleToggleGPS}
               trackColor={{ false: '#374151', true: '#3b82f6' }}
               thumbColor={gpsEnabled ? '#fff' : '#9ca3af'}
+              disabled={subscriptionActive}
             />
           </View>
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,10 +10,16 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { bienApi } from '../../services/bienApi';
+import { getActiveContractsMap, ActiveContractInfo } from '../../utils/contractUtils';
 
 export const SearchScreen = ({ navigation }: any) => {
   const [biens, setBiens] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [activeContracts, setActiveContracts] = useState<Map<string, ActiveContractInfo>>(new Map());
+
+  useEffect(() => {
+    getActiveContractsMap().then(setActiveContracts);
+  }, []);
   const [filters, setFilters] = useState({
     ville: '',
     quartier: '',
@@ -229,6 +235,19 @@ export const SearchScreen = ({ navigation }: any) => {
                     <Text style={{ color: '#10b981', fontSize: 16, fontWeight: '600', marginTop: 8 }}>
                       {bien.prix_loyer.toLocaleString()} FCFA/mois
                     </Text>
+                  )}
+                  {activeContracts.has(bien.id_bien) ? (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, backgroundColor: '#f59e0b20', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6, alignSelf: 'flex-start' }}>
+                      <Ionicons name="time-outline" size={14} color="#f59e0b" />
+                      <Text style={{ color: '#f59e0b', fontSize: 12, fontWeight: '600', marginLeft: 5 }}>
+                        {activeContracts.get(bien.id_bien)!.label}
+                      </Text>
+                    </View>
+                  ) : (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, backgroundColor: '#10b98120', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6, alignSelf: 'flex-start' }}>
+                      <Ionicons name="checkmark-circle-outline" size={14} color="#10b981" />
+                      <Text style={{ color: '#10b981', fontSize: 12, fontWeight: '600', marginLeft: 5 }}>Disponible</Text>
+                    </View>
                   )}
                 </TouchableOpacity>
               ))}

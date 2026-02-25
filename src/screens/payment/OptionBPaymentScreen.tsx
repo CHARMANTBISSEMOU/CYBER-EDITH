@@ -8,10 +8,46 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const OptionBPaymentScreen = ({ navigation }: any) => {
   const [loading, setLoading] = useState(false);
+  const [selectedAmount, setSelectedAmount] = useState<5000 | 10000>(5000);
   
-  // Déterminer le montant selon le type d'utilisateur
-  // 5000 FCFA pour locataires, 10000 FCFA pour propriétaires
-  const montant = 5000; // Par défaut locataire
+  const computeSubscription = async () => {
+    const start = new Date();
+    const end = new Date(start);
+    end.setFullYear(end.getFullYear() + 1);
+
+    await AsyncStorage.setItem(
+      'option_b_subscription',
+      JSON.stringify({
+        amount: selectedAmount,
+        type: selectedAmount === 10000 ? 'publier' : 'rechercher',
+        valid_from: start.toISOString(),
+        valid_to: end.toISOString(),
+      })
+    );
+
+    await AsyncStorage.setItem('gps_enabled', 'false');
+  };
+
+  const verifierEtActiverAbonnement = async (reference: string) => {
+    const res = await notchpayApi.verifierPaiement(reference);
+    const statut = res?.data?.status || res?.data?.data?.status;
+
+    if (statut === 'complete' || statut === 'successful' || statut === 'success') {
+      await computeSubscription();
+      Alert.alert(
+        'Abonnement activé',
+        'Votre paiement a été confirmé. Votre abonnement est maintenant actif.',
+        [{ text: 'OK', onPress: () => navigation.goBack() }]
+      );
+      return;
+    }
+
+    Alert.alert(
+      'Paiement non confirmé',
+      `Statut actuel: ${statut || 'inconnu'}. Réessayez dans quelques minutes.`,
+      [{ text: 'OK' }]
+    );
+  };
 
   const handlePayment = async () => {
     try {
@@ -54,36 +90,56 @@ export const OptionBPaymentScreen = ({ navigation }: any) => {
       const user = userStr ? JSON.parse(userStr) : null;
       
       const paymentResponse = await notchpayApi.initierPaiement({
-        montant: montant,
+        montant: selectedAmount,
         email: user?.email || 'user@example.com',
         telephone: user?.telephone || '237677777777',
-        description: 'Paiement Option B - Refus GPS',
+        description:
+          selectedAmount === 10000
+            ? 'Abonnement annuel - Publier des biens'
+            : 'Abonnement annuel - Rechercher des biens',
         type_transaction: 'option_b',
-        id_utilisateur: user?.id_utilisateur || 'user_test',
-        id_bien: 'option_b_payment'
+        id_bien: undefined
       });
 
       console.log('✅ Réponse API:', JSON.stringify(paymentResponse, null, 2));
 
-      if (paymentResponse.success && paymentResponse.data?.payment_url) {
+      const paymentUrl = paymentResponse?.data?.authorization_url || paymentResponse?.data?.payment_url;
+      const paymentReference = paymentResponse?.data?.reference_notchpay || paymentResponse?.data?.reference;
+
+      if (paymentResponse.success && paymentUrl) {
         // Sauvegarder l'ID de transaction
         if (paymentResponse.data.id_transaction) {
           await AsyncStorage.setItem('pending_payment_id', paymentResponse.data.id_transaction);
           console.log('💾 ID transaction sauvegardé:', paymentResponse.data.id_transaction);
         }
 
+        if (paymentReference) {
+          await AsyncStorage.setItem('pending_notchpay_reference', String(paymentReference));
+        }
+
         // Ouvrir l'URL de paiement NotchPay
-        const canOpen = await Linking.canOpenURL(paymentResponse.data.payment_url);
+        const canOpen = await Linking.canOpenURL(paymentUrl);
         if (canOpen) {
-          console.log('🌐 Ouverture de NotchPay:', paymentResponse.data.payment_url);
-          await Linking.openURL(paymentResponse.data.payment_url);
+          console.log('🌐 Ouverture de NotchPay:', paymentUrl);
+          await Linking.openURL(paymentUrl);
           
           Alert.alert(
             'Paiement en cours',
             'Vous allez être redirigé vers NotchPay pour effectuer le paiement. Revenez dans l\'app après avoir payé.',
             [
               {
-                text: 'OK',
+                text: 'J\'ai payé',
+                onPress: async () => {
+                  if (paymentReference) {
+                    await verifierEtActiverAbonnement(String(paymentReference));
+                  } else {
+                    Alert.alert('Erreur', 'Référence de paiement manquante.');
+                  }
+                }
+              },
+              {
+                text: 'Plus tard',
+                style: 'cancel',
                 onPress: () => navigation.goBack()
               }
             ]
@@ -148,12 +204,43 @@ export const OptionBPaymentScreen = ({ navigation }: any) => {
                 💰 Montant à payer
               </Text>
               <Text style={{ color: '#fff', fontSize: 24, fontWeight: '700' }}>
-                {montant.toLocaleString()} FCFA
+                {selectedAmount.toLocaleString()} FCFA
               </Text>
               <Text style={{ color: '#9ca3af', fontSize: 13, marginTop: 4 }}>
                 Paiement annuel
               </Text>
             </View>
+          </View>
+
+          <View style={{ backgroundColor: '#1e293b', padding: 16, borderRadius: 12, marginBottom: 16 }}>
+            <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600', marginBottom: 12 }}>
+              Choisir votre abonnement
+            </Text>
+
+            <TouchableOpacity
+              onPress={() => setSelectedAmount(10000)}
+              style={{
+                backgroundColor: selectedAmount === 10000 ? '#2563eb' : '#334155',
+                padding: 12,
+                borderRadius: 10,
+                marginBottom: 10,
+              }}
+            >
+              <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>10 000 FCFA / an</Text>
+              <Text style={{ color: '#e2e8f0', marginTop: 4 }}>Publier des biens</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setSelectedAmount(5000)}
+              style={{
+                backgroundColor: selectedAmount === 5000 ? '#2563eb' : '#334155',
+                padding: 12,
+                borderRadius: 10,
+              }}
+            >
+              <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>5 000 FCFA / an</Text>
+              <Text style={{ color: '#e2e8f0', marginTop: 4 }}>Rechercher des biens</Text>
+            </TouchableOpacity>
           </View>
 
           {/* Avantages */}
@@ -206,7 +293,7 @@ export const OptionBPaymentScreen = ({ navigation }: any) => {
               <>
                 <Ionicons name="card-outline" size={24} color="#fff" />
                 <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600', marginLeft: 8 }}>
-                  Payer {montant.toLocaleString()} FCFA
+                  Payer {selectedAmount.toLocaleString()} FCFA
                 </Text>
               </>
             )}

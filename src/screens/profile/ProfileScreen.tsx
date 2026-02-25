@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -8,9 +8,71 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/authStore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { contratApi } from '../../services/contratApi';
+import { useTranslation } from '../../i18n/useTranslation';
 
 export const ProfileScreen = ({ navigation }: any) => {
+  const { t } = useTranslation();
   const { user, logout } = useAuthStore();
+  const [gpsEnabled, setGpsEnabled] = useState<boolean | null>(null);
+  const [subscription, setSubscription] = useState<any | null>(null);
+  const [contractCount, setContractCount] = useState(0);
+
+  useEffect(() => {
+    const loadLocalSettings = async () => {
+      try {
+        const gps = await AsyncStorage.getItem('gps_enabled');
+        setGpsEnabled(gps === 'true');
+
+        const sub = await AsyncStorage.getItem('option_b_subscription');
+        setSubscription(sub ? JSON.parse(sub) : null);
+      } catch {
+        setGpsEnabled(null);
+        setSubscription(null);
+      }
+    };
+
+    const unsubscribe = navigation.addListener('focus', () => {
+      loadLocalSettings();
+      loadContractCount();
+    });
+    loadLocalSettings();
+    loadContractCount();
+    return unsubscribe;
+  }, [navigation]);
+
+  const loadContractCount = async () => {
+    try {
+      let count = 0;
+      // Contrats backend
+      try {
+        const res = await contratApi.getMesContrats();
+        const backendList = res.contrats || res || [];
+        if (Array.isArray(backendList)) count += backendList.length;
+      } catch (e) {}
+      // Contrats locaux
+      try {
+        const stored = await AsyncStorage.getItem('local_contracts');
+        if (stored) {
+          const local = JSON.parse(stored);
+          count += local.length;
+        }
+      } catch (e) {}
+      setContractCount(count);
+    } catch (e) {}
+  };
+
+  const formatShortDate = (iso?: string) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  };
+
+  const isSubscriptionActive = (() => {
+    if (!subscription?.valid_to) return false;
+    return new Date(subscription.valid_to).getTime() > Date.now();
+  })();
 
   const handleLogout = () => {
     Alert.alert(
@@ -32,27 +94,27 @@ export const ProfileScreen = ({ navigation }: any) => {
   const menuItems = [
     {
       icon: 'person-outline',
-      title: 'Modifier le profil',
+      title: t('profileEditProfile'),
       onPress: () => navigation.navigate('EditProfile'),
     },
     {
       icon: 'home-outline',
-      title: 'Mes biens',
+      title: t('profileMyProperties'),
       onPress: () => navigation.navigate('MyProperties'),
     },
     {
       icon: 'document-text-outline',
-      title: 'Mes contrats',
+      title: t('profileMyContracts'),
       onPress: () => navigation.navigate('Contracts'),
     },
     {
       icon: 'card-outline',
-      title: 'Paiements',
+      title: t('profilePayments'),
       onPress: () => navigation.navigate('PaymentsHistory'),
     },
     {
       icon: 'settings-outline',
-      title: 'Paramètres',
+      title: t('profileSettings'),
       onPress: () => navigation.navigate('Settings'),
     },
   ];
@@ -79,14 +141,23 @@ export const ProfileScreen = ({ navigation }: any) => {
               </View>
             )}
 
+            {isSubscriptionActive && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 12, backgroundColor: '#dcfce7', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 }}>
+                <Ionicons name="checkmark-circle" size={18} color="#10b981" />
+                <Text style={{ color: '#10b981', marginLeft: 8, fontWeight: '500' }}>
+                  abonnement valide du {formatShortDate(subscription.valid_from)} au {formatShortDate(subscription.valid_to)}
+                </Text>
+              </View>
+            )}
+
             <View style={{ flexDirection: 'row', marginTop: 24, gap: 24 }}>
               <View style={{ alignItems: 'center' }}>
-                <Text style={{ color: '#1e293b', fontSize: 24, fontWeight: '700' }}>{user?.nombre_contrats || 0}</Text>
+                <Text style={{ color: '#1e293b', fontSize: 24, fontWeight: '700' }}>{contractCount}</Text>
                 <Text style={{ color: '#64748b', fontSize: 12 }}>Contrats</Text>
               </View>
               <View style={{ alignItems: 'center' }}>
                 <Text style={{ color: '#1e293b', fontSize: 24, fontWeight: '700' }}>
-                  {user?.consent_geolocalisation === 'oui' ? '✓' : '✗'}
+                  {isSubscriptionActive ? '✗' : gpsEnabled ? '✓' : '✗'}
                 </Text>
                 <Text style={{ color: '#64748b', fontSize: 12 }}>GPS</Text>
               </View>

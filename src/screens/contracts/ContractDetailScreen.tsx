@@ -168,10 +168,10 @@ export const ContractDetailScreen = ({ route, navigation }: any) => {
     try {
       const response = await contratApi.getContratPDF(id_contrat);
       if (response.url_pdf) {
-        Linking.openURL(response.url_pdf);
+        navigation.navigate('ContractPdfPreview', { url_pdf: response.url_pdf });
       }
     } catch (error: any) {
-      Alert.alert('Erreur', 'Impossible de télécharger le PDF');
+      Alert.alert('Erreur', 'Impossible de charger le PDF');
     }
   };
 

@@ -11,29 +11,58 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { notchpayApi } from '../../services/api';
+import { authApi } from '../../services/api';
+import { useAuthStore } from '../../store/authStore';
 
 export const PaymentsHistoryScreen = ({ navigation }: any) => {
+  const { user } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'historique' | 'revenus'>('historique');
   const [payments, setPayments] = useState<any[]>([]);
   const [revenues, setRevenues] = useState<any>(null);
+  const [subscription, setSubscription] = useState<any | null>(null);
 
   useEffect(() => {
     loadData();
   }, [activeTab]);
 
+  const loadSubscription = async () => {
+    try {
+      const subStr = await AsyncStorage.getItem('option_b_subscription');
+      setSubscription(subStr ? JSON.parse(subStr) : null);
+    } catch {
+      setSubscription(null);
+    }
+  };
+
   const loadData = async () => {
     try {
       setLoading(true);
+      await loadSubscription();
       if (activeTab === 'historique') {
-        // Récupérer l'ID utilisateur depuis AsyncStorage
-        const userStr = await AsyncStorage.getItem('user');
-        const user = userStr ? JSON.parse(userStr) : null;
-        if (user) {
-          const response = await notchpayApi.getHistoriqueUtilisateur(user.id_utilisateur);
-          setPayments(response.data || []);
+        let userId = user?.id_utilisateur;
+
+        if (!userId) {
+          try {
+            const profile = await authApi.getProfile();
+            userId = profile?.id_utilisateur;
+          } catch (e) {
+            console.log('⚠️ Impossible de récupérer le profil pour l\'historique paiements');
+          }
         }
+
+        if (!userId) {
+          console.log('⚠️ Aucun id_utilisateur disponible → historique vide');
+          setPayments([]);
+          return;
+        }
+
+        console.log('📥 Chargement historique paiements pour:', userId);
+        const response = await notchpayApi.getHistoriqueUtilisateur(userId);
+        const allPayments = response.data || [];
+        const filtered = allPayments.filter((p: any) => p?.statut !== 'en_attente');
+        setPayments(filtered);
       } else {
         // TODO: Implémenter getMyRevenue avec NotchPay
         setRevenues(null);
@@ -52,20 +81,53 @@ export const PaymentsHistoryScreen = ({ navigation }: any) => {
     setRefreshing(false);
   };
 
+  const isSubscriptionActive = (() => {
+    if (!subscription?.valid_to) return false;
+    return new Date(subscription.valid_to).getTime() > Date.now();
+  })();
+
+  const formatShortDate = (iso?: string) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  };
+
+  const subscriptionLabel = (() => {
+    if (!subscription) return null;
+    const amount = subscription.amount;
+    const type = subscription.type;
+    const typeLabel = type === 'publier' ? 'Publier des biens' : type === 'rechercher' ? 'Rechercher des biens' : type;
+    return `${amount?.toLocaleString?.() || amount} FCFA / an — ${typeLabel}`;
+  })();
+
   const getStatusColor = (statut: string) => {
     switch (statut) {
-      case 'succès': return '#10b981';
+      case 'succès':
+      case 'reussi':
+        return '#10b981';
       case 'en_attente': return '#f59e0b';
-      case 'échoué': return '#ef4444';
+      case 'échoué':
+      case 'echoue':
+        return '#ef4444';
+      case 'annule':
+      case 'annulé':
+        return '#6b7280';
       default: return '#6b7280';
     }
   };
 
   const getStatusLabel = (statut: string) => {
     switch (statut) {
-      case 'succès': return 'Succès';
+      case 'succès':
+      case 'reussi':
+        return 'Réussi';
       case 'en_attente': return 'En attente';
-      case 'échoué': return 'Échoué';
+      case 'échoué':
+      case 'echoue':
+        return 'Échoué';
+      case 'annule':
+      case 'annulé':
+        return 'Annulé';
       default: return statut;
     }
   };
@@ -84,6 +146,15 @@ export const PaymentsHistoryScreen = ({ navigation }: any) => {
   const renderPayment = ({ item }: any) => {
     const isIncoming = item.type_transaction === 'loyer_recu';
     const statusColor = getStatusColor(item.statut);
+
+    const typeLabel =
+      (item.type_transaction === 'publication' && 'Publication bien') ||
+      (item.type_transaction === 'guide' && 'Guide visite') ||
+      (item.type_transaction === 'commission' && 'Commission') ||
+      (item.type_transaction === 'penalite' && 'Pénalité') ||
+      (item.type_transaction === 'abonnement' && 'Abonnement') ||
+      item.description ||
+      item.type_transaction;
 
     return (
       <View
@@ -107,10 +178,7 @@ export const PaymentsHistoryScreen = ({ navigation }: any) => {
                 color={isIncoming ? '#10b981' : '#3b82f6'}
               />
               <Text style={{ color: '#1e293b', fontSize: 16, fontWeight: '600', marginLeft: 8 }}>
-                {item.type_transaction === 'publication' && 'Publication bien'}
-                {item.type_transaction === 'guide' && 'Guide visite'}
-                {item.type_transaction === 'commission' && 'Commission'}
-                {item.type_transaction === 'abonnement' && 'Abonnement'}
+                {typeLabel}
               </Text>
             </View>
             <Text style={{ color: '#64748b', fontSize: 13 }}>
@@ -176,6 +244,34 @@ export const PaymentsHistoryScreen = ({ navigation }: any) => {
         </View>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <ActivityIndicator size="large" color="#3b82f6" />
+        </View>
+
+        <View style={{ marginTop: 16, backgroundColor: '#ffffff', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: '#e2e8f0' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <View style={{ flex: 1, paddingRight: 12 }}>
+              <Text style={{ color: '#1e293b', fontSize: 14, fontWeight: '700' }}>Abonnement Option B</Text>
+              {subscription ? (
+                <>
+                  <Text style={{ color: isSubscriptionActive ? '#10b981' : '#64748b', marginTop: 6, fontSize: 13, fontWeight: '600' }}>
+                    {isSubscriptionActive ? 'Actif' : 'Inactif'}
+                  </Text>
+                  <Text style={{ color: '#64748b', marginTop: 4, fontSize: 12 }}>{subscriptionLabel}</Text>
+                  <Text style={{ color: '#94a3b8', marginTop: 4, fontSize: 12 }}>
+                    Valide du {formatShortDate(subscription.valid_from)} au {formatShortDate(subscription.valid_to)}
+                  </Text>
+                </>
+              ) : (
+                <Text style={{ color: '#64748b', marginTop: 6, fontSize: 12 }}>Aucun abonnement enregistré sur ce téléphone.</Text>
+              )}
+            </View>
+
+            <TouchableOpacity
+              onPress={() => navigation.navigate('OptionBPayment')}
+              style={{ backgroundColor: '#3b82f6', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10 }}
+            >
+              <Text style={{ color: '#fff', fontWeight: '700', fontSize: 12 }}>{isSubscriptionActive ? 'Renouveler' : 'S\'abonner'}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     );
@@ -246,7 +342,7 @@ export const PaymentsHistoryScreen = ({ navigation }: any) => {
         <FlatList
           data={payments}
           renderItem={renderPayment}
-          keyExtractor={(item) => item.id_paiement}
+          keyExtractor={(item) => String(item.id_transaction || item.reference_notchpay || item.date_transaction)}
           contentContainerStyle={{ padding: 16 }}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#3b82f6" />
@@ -255,7 +351,7 @@ export const PaymentsHistoryScreen = ({ navigation }: any) => {
             <View style={{ alignItems: 'center', paddingTop: 60 }}>
               <Ionicons name="wallet-outline" size={80} color="#94a3b8" />
               <Text style={{ color: '#64748b', fontSize: 18, marginTop: 24, textAlign: 'center' }}>
-                Aucun paiement
+                Aucun paiement terminé
               </Text>
             </View>
           }

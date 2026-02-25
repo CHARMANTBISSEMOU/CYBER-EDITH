@@ -10,12 +10,57 @@ import {
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Video, ResizeMode } from 'expo-av';
 import { bienApi } from '../../services/bienApi';
 import { mediaApi } from '../../services/mediaApi';
 import { useAuthStore } from '../../store/authStore';
 import { ScreenHeader } from '../../components/ScreenHeader';
 
 const { width } = Dimensions.get('window');
+
+const VideoPlayer = ({ uri }: { uri: string }) => {
+  const videoRef = useRef<Video>(null);
+
+  const handleFullscreen = async () => {
+    try {
+      if (videoRef.current) {
+        await videoRef.current.presentFullscreenPlayer();
+      }
+    } catch (e) {
+      console.log('Fullscreen non supporté:', e);
+    }
+  };
+
+  return (
+    <View style={{ width: '100%', height: '100%' }}>
+      <Video
+        ref={videoRef}
+        source={{ uri }}
+        style={{ width: '100%', height: '100%' }}
+        resizeMode={ResizeMode.CONTAIN}
+        useNativeControls
+        isLooping={false}
+        shouldPlay={false}
+      />
+      <TouchableOpacity
+        onPress={handleFullscreen}
+        style={{
+          position: 'absolute',
+          bottom: 12,
+          right: 12,
+          width: 36,
+          height: 36,
+          borderRadius: 18,
+          backgroundColor: 'rgba(0,0,0,0.6)',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Ionicons name="expand" size={18} color="#fff" />
+      </TouchableOpacity>
+    </View>
+  );
+};
 
 export const BienDetailScreen = ({ route, navigation }: any) => {
   const { id } = route.params;
@@ -41,11 +86,17 @@ export const BienDetailScreen = ({ route, navigation }: any) => {
         const mediasData = await mediaApi.getBienMedias(id);
         console.log('Réponse médias API:', mediasData);
         
-        // Vérifier différentes structures de réponse possibles
-        const mediasArray = mediasData.medias || mediasData.media || mediasData.images || mediasData || [];
-        console.log('Médias extraits:', mediasArray);
-        
-        setMedias(Array.isArray(mediasArray) ? mediasArray : []);
+        // Le backend retourne { images: [], videos: [] } séparément
+        const imgs = Array.isArray(mediasData.images) ? mediasData.images : [];
+        const vids = Array.isArray(mediasData.videos) ? mediasData.videos : [];
+        const combined = [...imgs, ...vids];
+        if (combined.length > 0) {
+          console.log('Médias extraits:', combined.length, '(images:', imgs.length, ', vidéos:', vids.length, ')');
+          setMedias(combined);
+        } else {
+          const fallback = mediasData.medias || mediasData.media || mediasData || [];
+          setMedias(Array.isArray(fallback) ? fallback : []);
+        }
       } catch (error) {
         console.log('Erreur chargement médias:', error);
         setMedias([]);
@@ -131,42 +182,26 @@ export const BienDetailScreen = ({ route, navigation }: any) => {
               scrollEventThrottle={16}
             >
               {medias.map((media, index) => {
-                console.log(`Affichage média ${index}:`, media);
-                
-                // Déterminer si c'est une image (peu importe le type)
-                const isImage = media.type_media === 'image' || 
-                               media.type === 'image' || 
-                               !media.type_media || // Par défaut, considérer comme image
-                               (media.url && (media.url.includes('.jpg') || media.url.includes('.jpeg') || media.url.includes('.png') || media.url.includes('.webp')));
-                
-                // Construire l'URL de l'image avec différents formats possibles
-                const imageUrl = media.url_image || media.url || media.media_url || media.src;
-                console.log(`URL image pour média ${index}:`, imageUrl);
+                const mediaUrl = media.url_image || media.url || media.media_url || media.src;
+                const isVideo = media.type_media === 'video' || media.type === 'video' ||
+                  (mediaUrl && (mediaUrl.endsWith('.mp4') || mediaUrl.endsWith('.mov') || mediaUrl.endsWith('.avi')));
                 
                 return (
                   <View key={index} style={{ width, height: 300 }}>
-                    {isImage && imageUrl ? (
+                    {isVideo && mediaUrl ? (
+                      <VideoPlayer uri={mediaUrl} />
+                    ) : mediaUrl ? (
                       <Image
-                        source={{ 
-                          uri: imageUrl,
-                          // Fallback si l'image ne charge pas
-                        }}
+                        source={{ uri: mediaUrl }}
                         style={{ width: '100%', height: '100%' }}
                         resizeMode="cover"
-                        defaultSource={{ uri: 'https://picsum.photos/seed/bien-placeholder/400/300.jpg' }}
                         onError={(error) => {
                           console.log(`Erreur chargement image ${index}:`, error);
                         }}
                       />
                     ) : (
                       <View style={{ width: '100%', height: '100%', backgroundColor: '#1e293b', alignItems: 'center', justifyContent: 'center' }}>
-                        <Ionicons name="videocam" size={64} color="#3b82f6" />
-                        <Text style={{ color: '#fff', marginTop: 8 }}>
-                          {media.type_media === 'video' || media.type === 'video' ? 'Vidéo' : 'Media'}
-                        </Text>
-                        <Text style={{ color: '#64748b', fontSize: 12, marginTop: 4 }}>
-                          {media.type_media || 'Type inconnu'}
-                        </Text>
+                        <Ionicons name="image-outline" size={64} color="#64748b" />
                       </View>
                     )}
                   </View>

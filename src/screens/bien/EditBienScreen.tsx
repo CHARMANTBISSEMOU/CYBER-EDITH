@@ -7,10 +7,13 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/authStore';
 import { bienApi } from '../../services/bienApi';
+import { mediaApi } from '../../services/mediaApi';
+import * as ImagePicker from 'expo-image-picker';
 import type { Bien } from '../../types';
 
 interface EditBienScreenProps {
@@ -28,6 +31,9 @@ export const EditBienScreen = ({ route, navigation }: EditBienScreenProps) => {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [bien, setBien] = useState<Bien | null>(null);
+  const [medias, setMedias] = useState<any[]>([]);
+  const [deletingMediaId, setDeletingMediaId] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   // Formulaire
   const [formData, setFormData] = useState({
@@ -67,7 +73,23 @@ export const EditBienScreen = ({ route, navigation }: EditBienScreenProps) => {
       console.log('✅ Bien chargé:', bienData);
       
       setBien(bienData);
-      
+
+      // Charger les médias du bien
+      try {
+        const mediasData = await mediaApi.getBienMedias(bienId);
+        const images = Array.isArray(mediasData.images) ? mediasData.images : [];
+        const videos = Array.isArray(mediasData.videos) ? mediasData.videos : [];
+        const combined = [...images, ...videos];
+        if (combined.length === 0) {
+          const fallback = mediasData.medias || mediasData.media || mediasData || [];
+          setMedias(Array.isArray(fallback) ? fallback : []);
+        } else {
+          setMedias(combined);
+        }
+      } catch (e) {
+        console.log('Pas de médias pour ce bien');
+      }
+
       // Remplir le formulaire avec les données existantes
       setFormData({
         titre: bienData.titre || '',
@@ -115,6 +137,100 @@ export const EditBienScreen = ({ route, navigation }: EditBienScreenProps) => {
       return false;
     }
     return true;
+  };
+
+  const handleDeleteMedia = (mediaId: string, index: number) => {
+    Alert.alert(
+      'Supprimer l\'image',
+      'Voulez-vous vraiment supprimer cette image ?',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Supprimer',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setDeletingMediaId(mediaId);
+              await mediaApi.deleteMedia(mediaId);
+              setMedias(prev => prev.filter((_, i) => i !== index));
+            } catch (e: any) {
+              console.error('Erreur suppression média:', e);
+              Alert.alert('Erreur', 'Impossible de supprimer l\'image');
+            } finally {
+              setDeletingMediaId(null);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const reloadMedias = async () => {
+    try {
+      const mediasData = await mediaApi.getBienMedias(bienId);
+      // Le backend retourne { images: [], videos: [] } séparément
+      const images = Array.isArray(mediasData.images) ? mediasData.images : [];
+      const videos = Array.isArray(mediasData.videos) ? mediasData.videos : [];
+      const combined = [...images, ...videos];
+      // Fallback si structure différente
+      if (combined.length === 0) {
+        const fallback = mediasData.medias || mediasData.media || mediasData || [];
+        setMedias(Array.isArray(fallback) ? fallback : []);
+      } else {
+        setMedias(combined);
+      }
+    } catch (e) {}
+  };
+
+  const handlePickMedia = async (type: 'image' | 'video') => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission requise', 'Autorisez l\'accès à la galerie.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: type === 'image'
+          ? ImagePicker.MediaTypeOptions.Images
+          : ImagePicker.MediaTypeOptions.Videos,
+        allowsEditing: type === 'image',
+        quality: type === 'image' ? 0.8 : 1,
+        videoMaxDuration: 60,
+      });
+
+      if (result.canceled || !result.assets?.[0]) return;
+
+      setUploading(true);
+      const asset = result.assets[0];
+      const isVideo = asset.type === 'video' || type === 'video';
+      const mimeType = asset.mimeType || (isVideo ? 'video/mp4' : 'image/jpeg');
+      const fileName = asset.fileName || (isVideo ? `video_${Date.now()}.mp4` : `image_${Date.now()}.jpg`);
+
+      console.log('📤 Upload média:', { type, isVideo, mimeType, fileName, uri: asset.uri });
+
+      const formDataUpload = new FormData();
+      formDataUpload.append('fichier', {
+        uri: asset.uri,
+        type: mimeType,
+        name: fileName,
+      } as any);
+      formDataUpload.append('type_media', isVideo ? 'video' : 'image');
+
+      await mediaApi.uploadMedia(bienId, formDataUpload);
+      await reloadMedias();
+
+      Alert.alert('Succès', `${isVideo ? 'Vidéo' : 'Image'} ajoutée avec succès`);
+    } catch (e: any) {
+      console.error('Erreur upload média:', e);
+      if (e.response) {
+        console.error('📤 Réponse 422:', JSON.stringify(e.response.data, null, 2));
+        console.error('📤 Status:', e.response.status);
+      }
+      Alert.alert('Erreur', e.response?.data?.detail || 'Impossible d\'ajouter le média');
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleUpdate = async () => {
@@ -482,6 +598,165 @@ export const EditBienScreen = ({ route, navigation }: EditBienScreenProps) => {
           <Text style={{ color: '#fff', fontSize: 16, marginLeft: 12 }}>
             Bien meublé
           </Text>
+        </TouchableOpacity>
+
+        {/* Gestion des médias (images + vidéos) */}
+        <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600', marginBottom: 8 }}>
+          🖼️ Images
+        </Text>
+
+        {(() => {
+          const images = medias.filter((m: any) => {
+            const t = m.type_media || m.type || '';
+            return t !== 'video' && !t.startsWith('video/');
+          });
+          return images.length > 0 ? (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
+              {images.map((media: any) => {
+                const imageUrl = media.url_image || media.url || media.media_url || media.src;
+                const mediaId = media.id_media || media.id;
+                const globalIndex = medias.indexOf(media);
+                return (
+                  <View key={mediaId || globalIndex} style={{ marginRight: 10, position: 'relative' }}>
+                    {imageUrl ? (
+                      <Image
+                        source={{ uri: imageUrl }}
+                        style={{ width: 110, height: 110, borderRadius: 10 }}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <View style={{ width: 110, height: 110, borderRadius: 10, backgroundColor: '#1e293b', alignItems: 'center', justifyContent: 'center' }}>
+                        <Ionicons name="image-outline" size={30} color="#64748b" />
+                      </View>
+                    )}
+                    <TouchableOpacity
+                      onPress={() => handleDeleteMedia(mediaId, globalIndex)}
+                      disabled={deletingMediaId === mediaId}
+                      style={{
+                        position: 'absolute', top: 4, right: 4,
+                        width: 28, height: 28, borderRadius: 14,
+                        backgroundColor: 'rgba(239,68,68,0.9)',
+                        alignItems: 'center', justifyContent: 'center',
+                      }}
+                    >
+                      {deletingMediaId === mediaId ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <Ionicons name="trash" size={14} color="#fff" />
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
+            </ScrollView>
+          ) : (
+            <View style={{ backgroundColor: '#1e293b', borderRadius: 10, padding: 16, alignItems: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#374151' }}>
+              <Ionicons name="image-outline" size={30} color="#64748b" />
+              <Text style={{ color: '#64748b', marginTop: 6, fontSize: 12 }}>Aucune image</Text>
+            </View>
+          );
+        })()}
+
+        <TouchableOpacity
+          onPress={() => handlePickMedia('image')}
+          disabled={uploading}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#1e293b',
+            padding: 12,
+            borderRadius: 10,
+            marginBottom: 20,
+            borderWidth: 1,
+            borderColor: '#3b82f6',
+            borderStyle: 'dashed',
+          }}
+        >
+          {uploading ? (
+            <ActivityIndicator size="small" color="#3b82f6" />
+          ) : (
+            <>
+              <Ionicons name="image-outline" size={18} color="#3b82f6" />
+              <Text style={{ color: '#3b82f6', fontSize: 14, fontWeight: '600', marginLeft: 8 }}>Ajouter une image</Text>
+            </>
+          )}
+        </TouchableOpacity>
+
+        {/* Vidéos */}
+        <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600', marginBottom: 8 }}>
+          🎬 Vidéos
+        </Text>
+
+        {(() => {
+          const videos = medias.filter((m: any) => {
+            const t = m.type_media || m.type || '';
+            return t === 'video' || t.startsWith('video/');
+          });
+          return videos.length > 0 ? (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
+              {videos.map((media: any) => {
+                const mediaId = media.id_media || media.id;
+                const globalIndex = medias.indexOf(media);
+                const videoName = media.nom || media.name || media.filename || 'Vidéo';
+                return (
+                  <View key={mediaId || globalIndex} style={{ marginRight: 10, position: 'relative' }}>
+                    <View style={{ width: 140, height: 90, borderRadius: 10, backgroundColor: '#1e293b', alignItems: 'center', justifyContent: 'center' }}>
+                      <Ionicons name="videocam" size={32} color="#3b82f6" />
+                      <Text style={{ color: '#94a3b8', fontSize: 11, marginTop: 4 }} numberOfLines={1}>{videoName}</Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => handleDeleteMedia(mediaId, globalIndex)}
+                      disabled={deletingMediaId === mediaId}
+                      style={{
+                        position: 'absolute', top: 4, right: 4,
+                        width: 28, height: 28, borderRadius: 14,
+                        backgroundColor: 'rgba(239,68,68,0.9)',
+                        alignItems: 'center', justifyContent: 'center',
+                      }}
+                    >
+                      {deletingMediaId === mediaId ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <Ionicons name="trash" size={14} color="#fff" />
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
+            </ScrollView>
+          ) : (
+            <View style={{ backgroundColor: '#1e293b', borderRadius: 10, padding: 16, alignItems: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#374151' }}>
+              <Ionicons name="videocam-outline" size={30} color="#64748b" />
+              <Text style={{ color: '#64748b', marginTop: 6, fontSize: 12 }}>Aucune vidéo</Text>
+            </View>
+          );
+        })()}
+
+        <TouchableOpacity
+          onPress={() => handlePickMedia('video')}
+          disabled={uploading}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#1e293b',
+            padding: 12,
+            borderRadius: 10,
+            marginBottom: 24,
+            borderWidth: 1,
+            borderColor: '#8b5cf6',
+            borderStyle: 'dashed',
+          }}
+        >
+          {uploading ? (
+            <ActivityIndicator size="small" color="#8b5cf6" />
+          ) : (
+            <>
+              <Ionicons name="videocam-outline" size={18} color="#8b5cf6" />
+              <Text style={{ color: '#8b5cf6', fontSize: 14, fontWeight: '600', marginLeft: 8 }}>Ajouter une vidéo</Text>
+            </>
+          )}
         </TouchableOpacity>
 
         {/* Bouton de mise à jour */}

@@ -15,8 +15,11 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/authStore';
+import { useLanguageStore } from '../../store/languageStore';
+import { useTranslation } from '../../i18n/useTranslation';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { TermsAudioModal } from '../../components/TermsAudioModal';
+import { LanguageSelectorModal } from '../../components/LanguageSelectorModal';
 import { authApi } from '../../services/api';
 
 const styles = StyleSheet.create({
@@ -142,6 +145,7 @@ export const LoginScreen = ({ navigation }: any) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showLanguageSelector, setShowLanguageSelector] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [selectedOption, setSelectedOption] = useState<'A' | 'B' | null>(null);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -149,8 +153,11 @@ export const LoginScreen = ({ navigation }: any) => {
   const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
 
   const { login, isLoading, error, clearError } = useAuthStore();
+  const { setLanguage, loadLanguage } = useLanguageStore();
+  const { t } = useTranslation();
 
   useEffect(() => {
+    loadLanguage();
     checkTermsAcceptance();
   }, []);
 
@@ -158,26 +165,23 @@ export const LoginScreen = ({ navigation }: any) => {
     try {
       const termsAccepted = await AsyncStorage.getItem('termsAccepted');
       if (!termsAccepted) {
-        setShowTermsModal(true);
+        setShowLanguageSelector(true);
       }
     } catch (err) {
       console.error('Error checking terms:', err);
     }
   };
 
+  const handleLanguageSelected = async (lang: 'fr' | 'en') => {
+    await setLanguage(lang);
+    setShowLanguageSelector(false);
+    setShowTermsModal(true);
+  };
+
   const handleTermsSelection = async (option: 'A' | 'B') => {
     setSelectedOption(option);
     await AsyncStorage.setItem('termsAccepted', 'true');
-    await AsyncStorage.setItem('selectedOption', option);
     setShowTermsModal(false);
-    
-    Alert.alert(
-      'Option sélectionnée',
-      option === 'A' 
-        ? 'Vous avez choisi le paiement à l\'acte avec suivi GPS.'
-        : 'Vous avez choisi l\'abonnement annuel sans suivi GPS.',
-      [{ text: 'OK' }]
-    );
   };
 
   const handleForgotPassword = async () => {
@@ -367,6 +371,11 @@ export const LoginScreen = ({ navigation }: any) => {
           </View>
         </View>
       </ScrollView>
+
+      <LanguageSelectorModal
+        visible={showLanguageSelector}
+        onSelect={handleLanguageSelected}
+      />
 
       <TermsAudioModal
         visible={showTermsModal}

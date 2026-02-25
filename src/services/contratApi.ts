@@ -9,9 +9,19 @@ export const contratApi = {
     date_debut: string,
     date_fin: string
   ) {
-    const response = await api.post('/contrats/initier', null, {
-      params: { id_locataire, id_bien, loyer_mensuel, date_debut, date_fin }
-    });
+    const params = {
+      id_locataire,
+      id_bien,
+      loyer_mensuel: Number(loyer_mensuel),
+      date_debut,
+      date_fin,
+    };
+
+    console.log('▶️ initierContrat params (query)', params);
+
+    const response = await api.post('/contrats/initier', null, { params });
+
+    console.log('✅ initierContrat response', response.data);
     return response.data;
   },
 

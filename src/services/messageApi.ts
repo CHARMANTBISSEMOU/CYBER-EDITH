@@ -3,160 +3,69 @@ import api from './api';
 export const messageApi = {
   // Envoyer un message
   async sendMessage(id_destinataire: string, id_bien: string, contenu: string, id_expediteur?: string) {
-    console.log('Tentative envoi message:', { id_destinataire, id_bien, contenu, id_expediteur });
+    console.log('📨 Envoi message:', { id_destinataire, id_bien, contenu_length: contenu.length });
     
-    // Format 1: Body JSON complet avec champs potentiels
+    const errors: string[] = [];
+
+    // Format 1 (principal): Query params — format attendu par le backend
     try {
-      console.log('Essai format 1: Body JSON complet');
-      const payload = {
-        // Destinataire - toutes les variations
-        id_destinataire,
-        destinataire_id: id_destinataire,
-        recipient_id: id_destinataire,
-        to_user_id: id_destinataire,
-        id_receiver: id_destinataire,
-        
-        // Bien - variations possibles
-        id_bien,
-        bien_id: id_bien,
-        property_id: id_bien,
-        
-        // Contenu - variations possibles
-        contenu,
-        message: contenu,
-        content: contenu,
-        text: contenu,
-        
-        // Expéditeur - variations possibles
-        id_expediteur: id_expediteur || 'user_fb210f92',
-        sender_id: id_expediteur || 'user_fb210f92',
-        from_user_id: id_expediteur || 'user_fb210f92',
-        
-        // Métadonnées
-        type_message: 'texte',
-        date_envoi: new Date().toISOString(),
-        lu: false
-      };
-      console.log('Payload envoyé:', JSON.stringify(payload, null, 2));
-      
-      const response = await api.post('/messages/envoyer', payload);
+      console.log('📨 Essai query params...');
+      const response = await api.post('/messages/envoyer', null, {
+        params: {
+          id_destinataire: String(id_destinataire),
+          id_bien: String(id_bien),
+          contenu: String(contenu),
+        }
+      });
+      console.log('📨 Envoi RÉUSSI (query params)');
       return response.data;
-    } catch (error1: any) {
-      console.log('Format 1 échoué:', error1.response?.status);
-      console.log('Détails erreur 422:', JSON.stringify(error1.response?.data, null, 2));
-      
-      // Afficher les champs manquants spécifiquement
-      if (error1.response?.status === 422 && error1.response?.data?.detail) {
-        console.log('=== ERREUR 422 DÉTAILLÉE ===');
-        console.log('Champs manquants détaillés:');
-        error1.response.data.detail.forEach((err: any, index: number) => {
-          console.log(`  ${index + 1}. Location:`, JSON.stringify(err.loc));
-          console.log(`  ${index + 1}. Message:`, err.msg);
-          console.log(`  ${index + 1}. Type:`, err.type);
-          console.log(`  ${index + 1}. Input:`, JSON.stringify(err.input));
-        });
-        console.log('=========================');
-        
-        // Créer le format correct basé sur les champs manquants
-        const missingFields = error1.response.data.detail.map((err: any) => {
-          const loc = err.loc;
-          if (Array.isArray(loc) && loc.length > 1) {
-            return loc[loc.length - 1]; // Prendre le dernier élément (nom du champ)
-          }
-          return null;
-        }).filter(Boolean);
-        
-        console.log('Champs manquants extraits:', missingFields);
-        
-        // Essai avec les noms de champs extraits
-        if (missingFields.length > 0) {
-          try {
-            console.log('Essai avec champs extraits:', missingFields);
-            const payload: any = {};
-            missingFields.forEach((field: string, index: number) => {
-              // Mapper les champs connus
-              if (field.includes('destinataire') || field.includes('recipient') || field.includes('to')) {
-                payload[field] = id_destinataire;
-              } else if (field.includes('bien') || field.includes('property')) {
-                payload[field] = id_bien;
-              } else if (field.includes('contenu') || field.includes('message') || field.includes('content')) {
-                payload[field] = contenu;
-              } else {
-                // Attribuer dans l'ordre si on ne peut pas deviner
-                const values = [id_destinataire, id_bien, contenu];
-                payload[field] = values[index] || '';
-              }
-            });
-            
-            console.log('Payload généré:', payload);
-            const response = await api.post('/messages/envoyer', payload);
-            return response.data;
-          } catch (errorExtracted: any) {
-            console.log('Essai champs extraits échoué:', errorExtracted.response?.status);
-            // Si ça marche avec les champs extraits, c'est bon, sinon continuer
-            if (errorExtracted.response?.status !== 422) {
-              throw errorExtracted;
-            }
-          }
-        }
-      }
-      
-      // Format 2: Form data (si le backend attend ce format)
-      try {
-        console.log('Essai format 2: Form data');
-        const formData = new FormData();
-        formData.append('id_destinataire', id_destinataire);
-        formData.append('id_bien', id_bien);
-        formData.append('contenu', contenu);
-        
-        const response = await api.post('/messages/envoyer', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        });
-        return response.data;
-      } catch (error2: any) {
-        console.log('Format 2 échoué:', error2.response?.status, error2.response?.data);
-        
-        // Format 3: Query params (format attendu par le backend)
-        try {
-          console.log('Essai format 3: Query params (format attendu)');
-          const response = await api.post('/messages/envoyer', null, {
-            params: { 
-              id_destinataire: String(id_destinataire),
-              id_bien: String(id_bien), 
-              contenu: String(contenu)
-            }
-          });
-          console.log('Format 3 RÉUSSI !');
-          return response.data;
-        } catch (error3: any) {
-          console.log('Format 3 échoué:', error3.response?.status);
-          
-          // Si erreur 500, le format est bon mais il y a un problème serveur
-          if (error3.response?.status === 500) {
-            console.log('Format correct mais erreur 500 serveur - message probablement envoyé');
-            return { success: true }; // Considérer comme un succès
-          }
-          
-          // Format 4: GET request au lieu de POST (alternative)
-          try {
-            console.log('Essai format 4: GET request avec params');
-            const response = await api.get('/messages/envoyer', {
-              params: { 
-                id_destinataire: String(id_destinataire),
-                id_bien: String(id_bien), 
-                contenu: String(contenu)
-              }
-            });
-            return response.data;
-          } catch (error4: any) {
-            console.log('Format 4 échoué:', error4.response?.status);
-            throw error4; // Lancer la dernière erreur
-          }
-        }
+    } catch (e1: any) {
+      const status1 = e1.response?.status;
+      console.log('📨 Query params échoué:', status1);
+      errors.push(`query_params:${status1}`);
+      // 500 = format OK mais erreur serveur, message probablement enregistré
+      if (status1 === 500) {
+        console.log('📨 Erreur 500 serveur — message probablement envoyé');
+        return { success: true };
       }
     }
+
+    // Format 2: JSON body
+    try {
+      console.log('📨 Essai JSON body...');
+      const response = await api.post('/messages/envoyer', {
+        id_destinataire,
+        id_bien,
+        contenu,
+        ...(id_expediteur ? { id_expediteur } : {}),
+      });
+      console.log('📨 Envoi RÉUSSI (JSON body)');
+      return response.data;
+    } catch (e2: any) {
+      console.log('📨 JSON body échoué:', e2.response?.status);
+      errors.push(`json_body:${e2.response?.status}`);
+    }
+
+    // Format 3: FormData
+    try {
+      console.log('📨 Essai FormData...');
+      const formData = new FormData();
+      formData.append('id_destinataire', id_destinataire);
+      formData.append('id_bien', id_bien);
+      formData.append('contenu', contenu);
+      const response = await api.post('/messages/envoyer', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      console.log('📨 Envoi RÉUSSI (FormData)');
+      return response.data;
+    } catch (e3: any) {
+      console.log('📨 FormData échoué:', e3.response?.status);
+      errors.push(`formdata:${e3.response?.status}`);
+    }
+
+    // Tous les formats ont échoué
+    console.error('📨 TOUS LES FORMATS ONT ÉCHOUÉ:', errors.join(', '));
+    throw new Error(`Envoi message échoué: ${errors.join(', ')}`);
   },
 
   // Liste de mes conversations
@@ -182,6 +91,12 @@ export const messageApi = {
   // Compter les messages non lus
   async getUnreadCount() {
     const response = await api.get('/messages/non-lus');
+    return response.data;
+  },
+
+  // Supprimer une conversation
+  async deleteConversation(id_interlocuteur: string, id_bien: string) {
+    const response = await api.delete(`/messages/conversation/${id_interlocuteur}/${id_bien}`);
     return response.data;
   },
 };

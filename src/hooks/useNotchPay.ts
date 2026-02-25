@@ -88,10 +88,12 @@ export const useNotchPay = () => {
       }
 
       // Ouvrir l'URL de paiement si disponible
-      if (response.payment_url) {
-        const canOpen = await Linking.canOpenURL(response.payment_url);
+      const paymentUrl = response?.authorization_url || response?.payment_url;
+
+      if (paymentUrl) {
+        const canOpen = await Linking.canOpenURL(paymentUrl);
         if (canOpen) {
-          await Linking.openURL(response.payment_url);
+          await Linking.openURL(paymentUrl);
           
           Alert.alert(
             'Paiement en cours',

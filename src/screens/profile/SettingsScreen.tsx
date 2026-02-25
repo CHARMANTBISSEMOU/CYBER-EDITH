@@ -2,24 +2,27 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Alert, Switch } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/authStore';
+import { useLanguageStore } from '../../store/languageStore';
+import { useTranslation } from '../../i18n/useTranslation';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { TermsAudioModal } from '../../components/TermsAudioModal';
 
 export const SettingsScreen = ({ navigation }: any) => {
   const { logout } = useAuthStore();
+  const { language, setLanguage } = useLanguageStore();
+  const { t } = useTranslation();
   const [paymentMode, setPaymentMode] = useState<'service' | 'annual'>('service');
-  const [language, setLanguage] = useState<'fr' | 'en'>('fr');
   const [notifications, setNotifications] = useState(true);
   const [showTermsModal, setShowTermsModal] = useState(false);
 
   const handleLogout = () => {
     Alert.alert(
-      'Déconnexion',
-      'Êtes-vous sûr de vouloir vous déconnecter ?',
+      t('settingsLogoutTitle'),
+      t('settingsLogoutConfirm'),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('cancel'), style: 'cancel' },
         {
-          text: 'Déconnexion',
+          text: t('settingsLogout'),
           style: 'destructive',
           onPress: async () => {
             await logout();
@@ -49,13 +52,13 @@ export const SettingsScreen = ({ navigation }: any) => {
 
   return (
     <View style={{ flex: 1, backgroundColor: '#ffffff' }}>
-      <ScreenHeader title="Paramètres" onBack={() => navigation.goBack()} />
+      <ScreenHeader title={t('settingsTitle')} onBack={() => navigation.goBack()} />
       
       <ScrollView style={{ flex: 1 }}>
         {/* Section Mode de paiement */}
         <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' }}>
           <Text style={{ color: '#1e293b', fontSize: 18, fontWeight: 'bold', marginBottom: 16 }}>
-            Mode de paiement
+            {t('settingsPaymentMode')}
           </Text>
           
           <TouchableOpacity
@@ -74,10 +77,10 @@ export const SettingsScreen = ({ navigation }: any) => {
           >
             <View style={{ flex: 1 }}>
               <Text style={{ color: '#1e293b', fontSize: 16, fontWeight: '600', marginBottom: 4 }}>
-                Par service
+                {t('settingsPerService')}
               </Text>
               <Text style={{ color: '#64748b', fontSize: 14 }}>
-                5 000 FCFA par bien trouvé
+                {t('settingsPerServiceDesc')}
               </Text>
             </View>
             {paymentMode === 'service' && (
@@ -100,10 +103,10 @@ export const SettingsScreen = ({ navigation }: any) => {
           >
             <View style={{ flex: 1 }}>
               <Text style={{ color: '#1e293b', fontSize: 16, fontWeight: '600', marginBottom: 4 }}>
-                Annuel
+                {t('settingsAnnual')}
               </Text>
               <Text style={{ color: '#64748b', fontSize: 14 }}>
-                10 000 FCFA/an (proprio) ou 5 000 FCFA/an (locataire)
+                {t('settingsAnnualDesc')}
               </Text>
             </View>
             {paymentMode === 'annual' && (
@@ -115,7 +118,7 @@ export const SettingsScreen = ({ navigation }: any) => {
         {/* Section Langue */}
         <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' }}>
           <Text style={{ color: '#1e293b', fontSize: 18, fontWeight: 'bold', marginBottom: 16 }}>
-            Langue
+            {t('settingsLanguage')}
           </Text>
           
           <View style={{ flexDirection: 'row', gap: 12 }}>
@@ -166,10 +169,10 @@ export const SettingsScreen = ({ navigation }: any) => {
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <View style={{ flex: 1 }}>
               <Text style={{ color: '#1e293b', fontSize: 16, fontWeight: '600', marginBottom: 4 }}>
-                Notifications
+                {t('settingsNotifications')}
               </Text>
               <Text style={{ color: '#64748b', fontSize: 14 }}>
-                Recevoir des notifications push
+                {t('settingsNotificationsDesc')}
               </Text>
             </View>
             <Switch
@@ -198,10 +201,10 @@ export const SettingsScreen = ({ navigation }: any) => {
             <Ionicons name="volume-high-outline" size={24} color="#3b82f6" />
             <View style={{ flex: 1, marginLeft: 12 }}>
               <Text style={{ color: '#1e293b', fontSize: 16, fontWeight: '600', marginBottom: 4 }}>
-                Réécouter les conditions
+                {t('settingsListenTerms')}
               </Text>
               <Text style={{ color: '#64748b', fontSize: 14 }}>
-                Synthèse vocale des conditions d'utilisation
+                {t('settingsListenTermsDesc')}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#64748b" />
@@ -211,7 +214,7 @@ export const SettingsScreen = ({ navigation }: any) => {
         {/* Section À propos */}
         <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' }}>
           <Text style={{ color: '#1e293b', fontSize: 18, fontWeight: 'bold', marginBottom: 16 }}>
-            À propos de l'application
+            {t('settingsAbout')}
           </Text>
           
           <View style={{ backgroundColor: '#f8fafc', padding: 16, borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: '#e2e8f0' }}>
@@ -262,7 +265,7 @@ export const SettingsScreen = ({ navigation }: any) => {
           >
             <Ionicons name="log-out-outline" size={24} color="#ef4444" />
             <Text style={{ color: '#ef4444', fontSize: 16, fontWeight: '600', marginLeft: 12 }}>
-              Se déconnecter
+              {t('settingsLogout')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -271,15 +274,8 @@ export const SettingsScreen = ({ navigation }: any) => {
       {/* Modal des conditions d'utilisation */}
       <TermsAudioModal
         visible={showTermsModal}
-        onSelectOption={(option) => {
+        onSelectOption={() => {
           setShowTermsModal(false);
-          Alert.alert(
-            'Option sélectionnée',
-            option === 'A' 
-              ? 'Paiement par service avec GPS activé'
-              : 'Abonnement annuel sans GPS',
-            [{ text: 'OK' }]
-          );
         }}
       />
     </View>

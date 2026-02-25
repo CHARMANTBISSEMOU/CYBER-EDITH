@@ -11,14 +11,19 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { messageApi } from '../../services/messageApi';
 import { useAuthStore } from '../../store/authStore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTranslation } from '../../i18n/useTranslation';
 
 export const MessagesScreen = ({ navigation }: any) => {
+  const { t } = useTranslation();
   const [conversations, setConversations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [hiddenConvos, setHiddenConvos] = useState<string[]>([]);
   const { user, isAuthenticated } = useAuthStore();
 
   useEffect(() => {
+    loadHiddenConvos();
     loadConversations();
     
     const interval = setInterval(() => {
@@ -27,6 +32,48 @@ export const MessagesScreen = ({ navigation }: any) => {
 
     return () => clearInterval(interval);
   }, []);
+
+  const loadHiddenConvos = async () => {
+    try {
+      const stored = await AsyncStorage.getItem('hidden_conversations');
+      if (stored) setHiddenConvos(JSON.parse(stored));
+    } catch {}
+  };
+
+  const getConvoKey = (item: any) => `${item.id_interlocuteur}_${item.id_bien}`;
+
+  const handleDeleteConversation = (item: any) => {
+    Alert.alert(
+      'Supprimer la discussion',
+      `Supprimer la conversation avec ${item.nom_interlocuteur || 'cet utilisateur'} ?`,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Supprimer',
+          style: 'destructive',
+          onPress: async () => {
+            // Tenter la suppression backend
+            try {
+              await messageApi.deleteConversation(item.id_interlocuteur, item.id_bien);
+              console.log('Conversation supprim\u00e9e du backend');
+            } catch (e: any) {
+              console.log('Backend delete non support\u00e9, masquage local:', e?.response?.status);
+            }
+
+            // Masquer localement dans tous les cas
+            const key = getConvoKey(item);
+            const updated = [...hiddenConvos, key];
+            setHiddenConvos(updated);
+            try {
+              await AsyncStorage.setItem('hidden_conversations', JSON.stringify(updated));
+            } catch {}
+
+            setConversations(prev => prev.filter(c => getConvoKey(c) !== key));
+          },
+        },
+      ]
+    );
+  };
 
   const loadConversations = async (silent = false) => {
     // Vérifier l'authentification d'abord
@@ -50,7 +97,15 @@ export const MessagesScreen = ({ navigation }: any) => {
     try {
       if (!silent) setLoading(true);
       const response = await messageApi.getConversations();
-      setConversations(response.conversations || []);
+      const allConvos = response.conversations || [];
+      // Lire les conversations masquées depuis AsyncStorage (évite closure stale)
+      let currentHidden: string[] = [];
+      try {
+        const stored = await AsyncStorage.getItem('hidden_conversations');
+        if (stored) currentHidden = JSON.parse(stored);
+      } catch {}
+      const visible = allConvos.filter((c: any) => !currentHidden.includes(getConvoKey(c)));
+      setConversations(visible);
     } catch (error: any) {
       console.error('Erreur chargement conversations:', error);
       
@@ -104,13 +159,17 @@ export const MessagesScreen = ({ navigation }: any) => {
         id_bien: item.id_bien,
         nom_interlocuteur: item.nom_interlocuteur,
       })}
+      onLongPress={() => handleDeleteConversation(item)}
+      delayLongPress={500}
       style={{
-        backgroundColor: '#1e293b',
+        backgroundColor: '#f8fafc',
         borderRadius: 12,
         padding: 16,
         marginBottom: 12,
         flexDirection: 'row',
         alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
       }}
     >
       {/* Avatar */}

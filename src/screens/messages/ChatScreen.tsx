@@ -12,12 +12,14 @@ import {
   Image,
   Dimensions,
   ScrollView,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { messageApi } from '../../services/messageApi';
 import { bienApi } from '../../services/bienApi';
 import { useAuthStore } from '../../store/authStore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const ChatScreen = ({ route, navigation }: any) => {
   const { id_interlocuteur, id_bien, nom_interlocuteur } = route.params;
@@ -29,6 +31,10 @@ export const ChatScreen = ({ route, navigation }: any) => {
   const [sentMessageTimestamps, setSentMessageTimestamps] = useState<number[]>([]); // Suivre les timestamps de nos messages
   const [bienDetails, setBienDetails] = useState<any>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [refuseModalVisible, setRefuseModalVisible] = useState(false);
+  const [refuseReason, setRefuseReason] = useState('');
+  const [contractStatus, setContractStatus] = useState<'pending' | 'accepted' | 'refused' | 'cancelled'>('pending');
+  const [contractActionLoading, setContractActionLoading] = useState(false);
   const flatListRef = useRef<FlatList>(null);
   const scrollViewRef = useRef<ScrollView>(null);
 
@@ -54,6 +60,14 @@ export const ChatScreen = ({ route, navigation }: any) => {
       // Trier les messages par date (plus récent en bas)
       // Pas de logs pour éviter la pollution
       
+      // Log la structure du premier message pour identifier les champs
+      if (messages.length > 0) {
+        console.log('📩 CLÉS message[0]:', Object.keys(messages[0]));
+        console.log('📩 message[0]:', JSON.stringify(messages[0], null, 2));
+        console.log('📩 Mon ID:', user?.id_utilisateur);
+        console.log('📩 id_interlocuteur:', id_interlocuteur);
+      }
+
       const sortedMessages = messages.sort((a: any, b: any) => {
         const dateA = a.date_envoi ? new Date(a.date_envoi).getTime() : 0;
         const dateB = b.date_envoi ? new Date(b.date_envoi).getTime() : 0;
@@ -133,33 +147,247 @@ export const ChatScreen = ({ route, navigation }: any) => {
     }
   };
 
-  const renderMessage = ({ item, index }: any) => {
-    // Logique simple et pragmatique :
-    // 1. Messages temporaires = nos messages (à droite)
-    // 2. Messages très récents (< 10 sec) = probablement nos messages (à droite)
-    // 3. Tous les autres = alternance simple (50/50)
-    
-    let isMyMessage = false;
-    
-    // Messages temporaires avec notre préfixe
-    if (item.id_message?.startsWith('sent_')) {
-      isMyMessage = true;
-    } else {
-      // Messages très récents
-      const messageTime = new Date(item.date_envoi).getTime();
-      const now = Date.now();
-      const timeDiff = Math.abs(now - messageTime);
-      
-      // Si envoyé il y a moins de 10 secondes, c'est probablement nous
-      if (timeDiff < 10000) {
-        isMyMessage = true;
-      } else {
-        // Pour les autres, simple alternation 50/50
-        isMyMessage = index % 2 === 0;
-      }
+  // Détecter si c'est un message contrat
+  const isContractMessage = (contenu: string) => contenu?.startsWith('📄 CONTRAT DE');
+  const isContractAccepted = (contenu: string) => contenu?.startsWith('✅ CONTRAT ACCEPTÉ');
+  const isContractRefused = (contenu: string) => contenu?.startsWith('❌ CONTRAT REFUSÉ');
+  const isContractCancelled = (contenu: string) => contenu?.startsWith('❌ CONTRAT ANNULÉ');
+
+  // Vérifier le statut du contrat dans les messages
+  useEffect(() => {
+    const hasCancelled = messages.some((m: any) => isContractCancelled(m.contenu));
+    const hasAccepted = messages.some((m: any) => isContractAccepted(m.contenu));
+    const hasRefused = messages.some((m: any) => isContractRefused(m.contenu));
+    if (hasCancelled) setContractStatus('cancelled');
+    else if (hasAccepted) setContractStatus('accepted');
+    else if (hasRefused) setContractStatus('refused');
+    else setContractStatus('pending');
+  }, [messages]);
+
+  // Mettre à jour le statut du contrat local
+  const updateLocalContractStatus = async (newStatus: string) => {
+    try {
+      const stored = await AsyncStorage.getItem('local_contracts');
+      if (!stored) return;
+      const contracts = JSON.parse(stored);
+      const updated = contracts.map((c: any) => {
+        if (c.id_bien === id_bien && c.id_locataire === id_interlocuteur) {
+          return { ...c, statut: newStatus, signe_locataire: newStatus === 'actif' };
+        }
+        return c;
+      });
+      await AsyncStorage.setItem('local_contracts', JSON.stringify(updated));
+    } catch (e) {
+      console.warn('Erreur maj contrat local:', e);
     }
-    
-    // Debug supprimé - fonctionnalité carrousel ajoutée
+  };
+
+  // Accepter le contrat
+  const handleAcceptContract = async () => {
+    Alert.alert(
+      'Accepter le contrat',
+      'En acceptant, vous confirmez avoir lu et approuvé toutes les conditions du contrat.',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Lu, approuvé et signé',
+          onPress: async () => {
+            setContractActionLoading(true);
+            try {
+              const msg = `✅ CONTRAT ACCEPTÉ\n\nLe contrat a été accepté et signé par ${nom_interlocuteur || 'le locataire'}.\nDate : ${new Date().toLocaleDateString('fr-FR')}\n\nCe contrat est désormais en vigueur.`;
+              await messageApi.sendMessage(id_interlocuteur, id_bien, msg, user?.id_utilisateur);
+              const tempMsg = {
+                id_message: `sent_${Date.now()}`,
+                contenu: msg,
+                id_expediteur: user?.id_utilisateur,
+                date_envoi: new Date().toISOString(),
+                lu: false,
+              };
+              setMessages(prev => [...prev, tempMsg]);
+              setContractStatus('accepted');
+              await updateLocalContractStatus('actif');
+              Alert.alert('Contrat signé !', 'Le propriétaire sera notifié de votre acceptation.');
+            } catch (e) {
+              Alert.alert('Erreur', "Impossible d'envoyer l'acceptation. Réessayez.");
+            }
+            setContractActionLoading(false);
+          },
+        },
+      ]
+    );
+  };
+
+  // Refuser le contrat
+  const handleRefuseContract = async () => {
+    if (!refuseReason.trim()) {
+      Alert.alert('Raison requise', 'Veuillez préciser la raison du refus.');
+      return;
+    }
+    setContractActionLoading(true);
+    try {
+      const msg = `❌ CONTRAT REFUSÉ\n\nLe contrat a été refusé par ${nom_interlocuteur || 'le locataire'}.\nDate : ${new Date().toLocaleDateString('fr-FR')}\n\nRaison du refus :\n${refuseReason.trim()}`;
+      await messageApi.sendMessage(id_interlocuteur, id_bien, msg, user?.id_utilisateur);
+      const tempMsg = {
+        id_message: `sent_${Date.now()}`,
+        contenu: msg,
+        id_expediteur: user?.id_utilisateur,
+        date_envoi: new Date().toISOString(),
+        lu: false,
+      };
+      setMessages(prev => [...prev, tempMsg]);
+      setContractStatus('refused');
+      await updateLocalContractStatus('refuse');
+      setRefuseModalVisible(false);
+      setRefuseReason('');
+      Alert.alert('Contrat refusé', 'Le propriétaire sera notifié avec votre raison.');
+    } catch (e) {
+      Alert.alert('Erreur', "Impossible d'envoyer le refus. Réessayez.");
+    }
+    setContractActionLoading(false);
+  };
+
+  // Rendu d'un message contrat
+  const renderContractBubble = (item: any) => {
+    const messageDate = new Date(item.date_envoi);
+    const timeString = messageDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
+    // Détecter si c'est moi qui ai envoyé ce contrat (je suis le propriétaire)
+    const isSender = item.id_message?.startsWith('sent_') || item.id_expediteur === user?.id_utilisateur;
+
+    // Extraire le corps du contrat (sans le préfixe emoji)
+    const contractText = item.contenu.replace(/^📄 CONTRAT DE (LOCATION|VENTE)\n\n/, '');
+
+    return (
+      <View style={{ marginBottom: 16, paddingHorizontal: 12 }}>
+        <View style={{ backgroundColor: '#fff', borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: '#e2e8f0' }}>
+          {/* En-tête */}
+          <View style={{ backgroundColor: '#2563eb', padding: 14, flexDirection: 'row', alignItems: 'center' }}>
+            <Ionicons name="document-text" size={22} color="#fff" />
+            <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700', marginLeft: 10, flex: 1 }}>Contrat</Text>
+            <Text style={{ color: '#dbeafe', fontSize: 11 }}>{timeString}</Text>
+          </View>
+
+          {/* Corps */}
+          <View style={{ padding: 16, maxHeight: 300 }}>
+            <ScrollView nestedScrollEnabled showsVerticalScrollIndicator>
+              <Text style={{ color: '#1e293b', fontSize: 13, lineHeight: 20 }}>{contractText}</Text>
+            </ScrollView>
+          </View>
+
+          {/* Statut / Actions */}
+          <View style={{ borderTopWidth: 1, borderTopColor: '#e2e8f0', padding: 14 }}>
+            {contractStatus === 'accepted' ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name="checkmark-circle" size={20} color="#10b981" />
+                <Text style={{ color: '#10b981', fontWeight: '700', marginLeft: 8, fontSize: 14 }}>Contrat accepté et signé</Text>
+              </View>
+            ) : contractStatus === 'refused' ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name="close-circle" size={20} color="#ef4444" />
+                <Text style={{ color: '#ef4444', fontWeight: '700', marginLeft: 8, fontSize: 14 }}>Contrat refusé</Text>
+              </View>
+            ) : contractStatus === 'cancelled' ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name="ban-outline" size={20} color="#6b7280" />
+                <Text style={{ color: '#6b7280', fontWeight: '700', marginLeft: 8, fontSize: 14 }}>Contrat annulé</Text>
+              </View>
+            ) : isSender ? (
+              <View style={{ alignItems: 'center' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name="time-outline" size={18} color="#f59e0b" />
+                  <Text style={{ color: '#f59e0b', fontWeight: '600', marginLeft: 8, fontSize: 14 }}>En attente de réponse du locataire</Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('Contracts')}
+                  style={{ marginTop: 10, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, backgroundColor: '#3b82f610' }}
+                >
+                  <Text style={{ color: '#3b82f6', fontSize: 13, fontWeight: '600' }}>Voir mes contrats</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View>
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <TouchableOpacity
+                    onPress={() => setRefuseModalVisible(true)}
+                    disabled={contractActionLoading}
+                    style={{ flex: 1, padding: 12, borderRadius: 10, borderWidth: 1.5, borderColor: '#ef4444', alignItems: 'center' }}
+                  >
+                    <Text style={{ color: '#ef4444', fontWeight: '700', fontSize: 14 }}>Refuser</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={handleAcceptContract}
+                    disabled={contractActionLoading}
+                    style={{ flex: 1, padding: 12, borderRadius: 10, backgroundColor: '#10b981', alignItems: 'center' }}
+                  >
+                    {contractActionLoading ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Accepter</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('Contracts')}
+                  style={{ marginTop: 10, padding: 10, borderRadius: 8, backgroundColor: '#3b82f610', alignItems: 'center' }}
+                >
+                  <Text style={{ color: '#3b82f6', fontSize: 13, fontWeight: '600' }}>Voir dans mes contrats</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        </View>
+      </View>
+    );
+  };
+
+  // Rendu d'un message statut contrat (accepté/refusé/annulé)
+  const renderContractStatusBubble = (item: any, type: 'accepted' | 'refused' | 'cancelled') => {
+    const colors = {
+      accepted: { bg: '#ecfdf5', border: '#a7f3d0', icon: '#10b981', title: '#065f46', text: '#047857' },
+      refused:  { bg: '#fef2f2', border: '#fecaca', icon: '#ef4444', title: '#991b1b', text: '#b91c1c' },
+      cancelled: { bg: '#f3f4f6', border: '#d1d5db', icon: '#6b7280', title: '#374151', text: '#4b5563' },
+    }[type];
+    const icons = { accepted: 'checkmark-circle', refused: 'close-circle', cancelled: 'ban-outline' }[type] as any;
+    const labels = { accepted: 'Contrat accepté', refused: 'Contrat refusé', cancelled: 'Contrat annulé' }[type];
+
+    return (
+      <View style={{ marginBottom: 12, paddingHorizontal: 16, alignItems: 'center' }}>
+        <View style={{
+          backgroundColor: colors.bg, borderRadius: 12, padding: 14, maxWidth: '90%',
+          borderWidth: 1, borderColor: colors.border,
+        }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+            <Ionicons name={icons} size={20} color={colors.icon} />
+            <Text style={{ fontWeight: '700', fontSize: 14, marginLeft: 8, color: colors.title }}>
+              {labels}
+            </Text>
+          </View>
+          <Text style={{ color: colors.text, fontSize: 13, lineHeight: 19 }}>
+            {item.contenu.replace(/^(✅ CONTRAT ACCEPTÉ|❌ CONTRAT REFUSÉ|❌ CONTRAT ANNULÉ)\n\n/, '')}
+          </Text>
+        </View>
+      </View>
+    );
+  };
+
+  const renderMessage = ({ item, index }: any) => {
+    // Messages spéciaux : contrat
+    if (isContractMessage(item.contenu)) {
+      return renderContractBubble(item);
+    }
+    if (isContractAccepted(item.contenu)) {
+      return renderContractStatusBubble(item, 'accepted');
+    }
+    if (isContractRefused(item.contenu)) {
+      return renderContractStatusBubble(item, 'refused');
+    }
+    if (isContractCancelled(item.contenu)) {
+      return renderContractStatusBubble(item, 'cancelled');
+    }
+
+    // Déterminer si c'est notre message
+    const isMyMessage = item.id_message?.startsWith('sent_') || item.envoye_par_moi === true;
+
     const messageDate = new Date(item.date_envoi);
     const timeString = messageDate.toLocaleTimeString('fr-FR', { 
       hour: '2-digit', 
@@ -178,18 +406,18 @@ export const ChatScreen = ({ route, navigation }: any) => {
         <View
           style={{
             maxWidth: '75%',
-            backgroundColor: isMyMessage ? '#3b82f6' : '#1e293b',
+            backgroundColor: isMyMessage ? '#3b82f6' : '#e5e7eb',
             borderRadius: 12,
             padding: 12,
             borderBottomRightRadius: isMyMessage ? 4 : 12,
             borderBottomLeftRadius: isMyMessage ? 12 : 4,
           }}
         >
-          <Text style={{ color: '#fff', fontSize: 15, lineHeight: 20 }}>
+          <Text style={{ color: isMyMessage ? '#fff' : '#1e293b', fontSize: 15, lineHeight: 20 }}>
             {item.contenu}
           </Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, justifyContent: 'flex-end' }}>
-            <Text style={{ color: isMyMessage ? '#dbeafe' : '#64748b', fontSize: 11 }}>
+            <Text style={{ color: isMyMessage ? '#dbeafe' : '#6b7280', fontSize: 11 }}>
               {timeString}
             </Text>
             {isMyMessage && (
@@ -464,6 +692,57 @@ export const ChatScreen = ({ route, navigation }: any) => {
           )}
         </TouchableOpacity>
       </View>
+      {/* Modal de refus de contrat */}
+      <Modal visible={refuseModalVisible} transparent animationType="slide">
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+              <Ionicons name="close-circle" size={24} color="#ef4444" />
+              <Text style={{ fontSize: 18, fontWeight: '700', color: '#1e293b', marginLeft: 10 }}>Refuser le contrat</Text>
+            </View>
+
+            <Text style={{ fontSize: 14, color: '#64748b', marginBottom: 12 }}>
+              Précisez la raison de votre refus. Le propriétaire recevra votre message.
+            </Text>
+
+            <TextInput
+              value={refuseReason}
+              onChangeText={setRefuseReason}
+              placeholder="Ex: Le loyer est trop élevé, je souhaite négocier..."
+              placeholderTextColor="#94a3b8"
+              multiline
+              style={{
+                borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 12,
+                padding: 14, fontSize: 15, minHeight: 100, textAlignVertical: 'top',
+                color: '#1e293b', backgroundColor: '#f8fafc', marginBottom: 16,
+              }}
+            />
+
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <TouchableOpacity
+                onPress={() => { setRefuseModalVisible(false); setRefuseReason(''); }}
+                style={{ flex: 1, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0', alignItems: 'center' }}
+              >
+                <Text style={{ color: '#64748b', fontWeight: '600', fontSize: 15 }}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleRefuseContract}
+                disabled={contractActionLoading || !refuseReason.trim()}
+                style={{
+                  flex: 1, padding: 14, borderRadius: 12, alignItems: 'center',
+                  backgroundColor: refuseReason.trim() ? '#ef4444' : '#fca5a5',
+                }}
+              >
+                {contractActionLoading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>Envoyer le refus</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 };

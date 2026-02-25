@@ -4,6 +4,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
+import { useTranslation } from '../i18n/useTranslation';
 
 import { LoginScreen } from '../screens/auth/LoginScreen';
 import { RegisterScreen } from '../screens/auth/RegisterScreen';
@@ -26,10 +27,12 @@ import { AddBienScreen } from '../screens/bien/AddBienScreen';
 import { ChatScreen } from '../screens/messages/ChatScreen';
 import { ContractsScreen } from '../screens/contracts/ContractsScreen';
 import { ContractDetailScreen } from '../screens/contracts/ContractDetailScreen';
+import { ContractPdfPreviewScreen } from '../screens/contracts/ContractPdfPreviewScreen';
 import { NotificationsScreen } from '../screens/notifications/NotificationsScreen';
 import { GpsAntiCheatingScreen } from '../screens/gps/GpsAntiCheatingScreen';
 import { PaymentsHistoryScreen } from '../screens/payments/PaymentsHistoryScreen';
 import { CreateContractScreen } from '../screens/contracts/CreateContractScreen';
+import { GenerateContractScreen } from '../screens/contracts/GenerateContractScreen';
 import { NavigationScreen } from '../screens/bien/NavigationScreen';
 
 const Stack = createStackNavigator();
@@ -44,52 +47,55 @@ const AuthStack = () => (
   </Stack.Navigator>
 );
 
-const HomeTabs = () => (
-  <Tab.Navigator
-    screenOptions={({ route }) => ({
-      headerShown: false,
-      tabBarStyle: {
-        backgroundColor: '#1e293b',
-        borderTopColor: '#334155',
-        borderTopWidth: 1,
-        paddingBottom: 8,
-        paddingTop: 8,
-        height: 60,
-      },
-      tabBarActiveTintColor: '#3b82f6',
-      tabBarInactiveTintColor: '#9ca3af',
-      tabBarIcon: ({ focused, color, size }) => {
-        let iconName: any;
+const HomeTabs = () => {
+  const { t } = useTranslation();
+  return (
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: '#1e293b',
+          borderTopColor: '#334155',
+          borderTopWidth: 1,
+          paddingBottom: 8,
+          paddingTop: 8,
+          height: 60,
+        },
+        tabBarActiveTintColor: '#3b82f6',
+        tabBarInactiveTintColor: '#9ca3af',
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName: any;
 
-        if (route.name === 'Home') {
-          iconName = focused ? 'home' : 'home-outline';
-        } else if (route.name === 'Messages') {
-          iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
-        } else if (route.name === 'Profile') {
-          iconName = focused ? 'person' : 'person-outline';
-        }
+          if (route.name === 'Home') {
+            iconName = focused ? 'home' : 'home-outline';
+          } else if (route.name === 'Messages') {
+            iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
+          } else if (route.name === 'Profile') {
+            iconName = focused ? 'person' : 'person-outline';
+          }
 
-        return <Ionicons name={iconName} size={size} color={color} />;
-      },
-    })}
-  >
-    <Tab.Screen 
-      name="Home" 
-      component={HomeScreen}
-      options={{ tabBarLabel: 'Accueil' }}
-    />
-    <Tab.Screen 
-      name="Messages" 
-      component={MessagesScreen}
-      options={{ tabBarLabel: 'Messages' }}
-    />
-    <Tab.Screen 
-      name="Profile" 
-      component={ProfileScreen}
-      options={{ tabBarLabel: 'Profil' }}
-    />
-  </Tab.Navigator>
-);
+          return <Ionicons name={iconName} size={size} color={color} />;
+        },
+      })}
+    >
+      <Tab.Screen 
+        name="Home" 
+        component={HomeScreen}
+        options={{ tabBarLabel: t('tabHome') }}
+      />
+      <Tab.Screen 
+        name="Messages" 
+        component={MessagesScreen}
+        options={{ tabBarLabel: t('tabMessages') }}
+      />
+      <Tab.Screen 
+        name="Profile" 
+        component={ProfileScreen}
+        options={{ tabBarLabel: t('tabProfile') }}
+      />
+    </Tab.Navigator>
+  );
+};
 
 const MainStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -184,6 +190,11 @@ const MainStack = () => (
       options={{ headerShown: false }}
     />
     <Stack.Screen 
+      name="ContractPdfPreview" 
+      component={ContractPdfPreviewScreen}
+      options={{ headerShown: false }}
+    />
+    <Stack.Screen 
       name="Notifications" 
       component={NotificationsScreen}
       options={{ headerShown: false }}
@@ -200,7 +211,7 @@ const MainStack = () => (
     />
     <Stack.Screen 
       name="CreateContract" 
-      component={CreateContractScreen}
+      component={GenerateContractScreen}
       options={{ headerShown: false }}
     />
     <Stack.Screen 

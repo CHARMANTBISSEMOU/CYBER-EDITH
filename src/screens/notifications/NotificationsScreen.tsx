@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { notificationApi } from '../../services/notificationApi';
+import { localNotificationService } from '../../utils/localNotifications';
 
 export const NotificationsScreen = ({ navigation }: any) => {
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -31,8 +32,24 @@ export const NotificationsScreen = ({ navigation }: any) => {
   const loadNotifications = async (silent = false) => {
     try {
       if (!silent) setLoading(true);
-      const response = await notificationApi.getNotifications();
-      setNotifications(response.notifications || []);
+
+      // Charger les notifications locales
+      const localNotifs = await localNotificationService.getAll();
+
+      // Charger les notifications backend (non bloquant)
+      let backendNotifs: any[] = [];
+      try {
+        const response = await notificationApi.getNotifications();
+        backendNotifs = response.notifications || response || [];
+      } catch (e) {
+        console.log('Backend notifications indisponible, utilisation locale uniquement');
+      }
+
+      // Fusionner et trier par date (plus récentes en premier)
+      const all = [...localNotifs, ...backendNotifs].sort(
+        (a, b) => new Date(b.date_creation).getTime() - new Date(a.date_creation).getTime()
+      );
+      setNotifications(all);
       loadUnreadCount();
     } catch (error: any) {
       console.error('Erreur chargement notifications:', error);
@@ -46,8 +63,13 @@ export const NotificationsScreen = ({ navigation }: any) => {
 
   const loadUnreadCount = async () => {
     try {
-      const response = await notificationApi.getUnreadCount();
-      setUnreadCount(response.total_non_lues || 0);
+      let backendCount = 0;
+      try {
+        const response = await notificationApi.getUnreadCount();
+        backendCount = response.total_non_lues || response.non_lues || 0;
+      } catch (e) {}
+      const localCount = await localNotificationService.getUnreadCount();
+      setUnreadCount(backendCount + localCount);
     } catch (error) {
       console.log('Erreur comptage non lues:', error);
     }
@@ -61,7 +83,11 @@ export const NotificationsScreen = ({ navigation }: any) => {
 
   const handleMarkAsRead = async (id: string) => {
     try {
-      await notificationApi.markAsRead(id);
+      if (id.startsWith('notif_')) {
+        await localNotificationService.markAsRead(id);
+      } else {
+        await notificationApi.markAsRead(id);
+      }
       setNotifications(notifications.map(n => 
         n.id_notification === id ? { ...n, lu: true } : n
       ));
@@ -73,7 +99,8 @@ export const NotificationsScreen = ({ navigation }: any) => {
 
   const handleMarkAllAsRead = async () => {
     try {
-      await notificationApi.markAllAsRead();
+      await localNotificationService.markAllAsRead();
+      try { await notificationApi.markAllAsRead(); } catch (e) {}
       setNotifications(notifications.map(n => ({ ...n, lu: true })));
       setUnreadCount(0);
       Alert.alert('Succès', 'Toutes les notifications ont été marquées comme lues');
@@ -93,7 +120,11 @@ export const NotificationsScreen = ({ navigation }: any) => {
           style: 'destructive',
           onPress: async () => {
             try {
-              await notificationApi.deleteNotification(id);
+              if (id.startsWith('notif_')) {
+                await localNotificationService.delete(id);
+              } else {
+                await notificationApi.deleteNotification(id);
+              }
               setNotifications(notifications.filter(n => n.id_notification !== id));
               loadUnreadCount();
             } catch (error) {
@@ -149,7 +180,7 @@ export const NotificationsScreen = ({ navigation }: any) => {
         onPress={() => !item.lu && handleMarkAsRead(item.id_notification)}
         onLongPress={() => handleDelete(item.id_notification)}
         style={{
-          backgroundColor: item.lu ? '#1e293b' : '#1e3a5f',
+          backgroundColor: item.lu ? '#f8fafc' : '#eff6ff',
           borderRadius: 12,
           padding: 16,
           marginBottom: 12,
@@ -176,10 +207,10 @@ export const NotificationsScreen = ({ navigation }: any) => {
 
         {/* Contenu */}
         <View style={{ flex: 1 }}>
-          <Text style={{ color: '#fff', fontSize: 15, fontWeight: '600', marginBottom: 4 }}>
+          <Text style={{ color: '#1e293b', fontSize: 15, fontWeight: '600', marginBottom: 4 }}>
             {item.message}
           </Text>
-          <Text style={{ color: '#9ca3af', fontSize: 13 }}>
+          <Text style={{ color: '#64748b', fontSize: 13 }}>
             {formatDate(item.date_creation)}
           </Text>
         </View>
@@ -202,9 +233,9 @@ export const NotificationsScreen = ({ navigation }: any) => {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#0f172a' }}>
-        <View style={{ paddingHorizontal: 16, paddingTop: 60, paddingBottom: 16, backgroundColor: '#1e293b' }}>
-          <Text style={{ color: '#fff', fontSize: 28, fontWeight: '700' }}>Notifications</Text>
+      <View style={{ flex: 1, backgroundColor: '#ffffff' }}>
+        <View style={{ paddingHorizontal: 16, paddingTop: 60, paddingBottom: 16, backgroundColor: '#ffffff' }}>
+          <Text style={{ color: '#1e293b', fontSize: 28, fontWeight: '700' }}>Notifications</Text>
         </View>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <ActivityIndicator size="large" color="#3b82f6" />
@@ -214,17 +245,22 @@ export const NotificationsScreen = ({ navigation }: any) => {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#0f172a' }}>
+    <View style={{ flex: 1, backgroundColor: '#ffffff' }}>
       {/* En-tête */}
-      <View style={{ paddingHorizontal: 16, paddingTop: 60, paddingBottom: 16, backgroundColor: '#1e293b' }}>
+      <View style={{ paddingHorizontal: 16, paddingTop: 60, paddingBottom: 16, backgroundColor: '#ffffff' }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <View>
-            <Text style={{ color: '#fff', fontSize: 28, fontWeight: '700' }}>Notifications</Text>
-            {unreadCount > 0 && (
-              <Text style={{ color: '#9ca3af', fontSize: 14, marginTop: 4 }}>
-                {unreadCount} non lue{unreadCount > 1 ? 's' : ''}
-              </Text>
-            )}
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 12 }}>
+              <Ionicons name="arrow-back" size={24} color="#1e293b" />
+            </TouchableOpacity>
+            <View>
+              <Text style={{ color: '#1e293b', fontSize: 28, fontWeight: '700' }}>Notifications</Text>
+              {unreadCount > 0 && (
+                <Text style={{ color: '#64748b', fontSize: 14, marginTop: 4 }}>
+                  {unreadCount} non lue{unreadCount > 1 ? 's' : ''}
+                </Text>
+              )}
+            </View>
           </View>
           {unreadCount > 0 && (
             <TouchableOpacity
@@ -259,11 +295,11 @@ export const NotificationsScreen = ({ navigation }: any) => {
         }
         ListEmptyComponent={
           <View style={{ alignItems: 'center', paddingTop: 60 }}>
-            <Ionicons name="notifications-outline" size={80} color="#334155" />
-            <Text style={{ color: '#9ca3af', fontSize: 18, marginTop: 24, textAlign: 'center' }}>
+            <Ionicons name="notifications-outline" size={80} color="#cbd5e1" />
+            <Text style={{ color: '#64748b', fontSize: 18, marginTop: 24, textAlign: 'center' }}>
               Aucune notification
             </Text>
-            <Text style={{ color: '#64748b', fontSize: 14, marginTop: 8, textAlign: 'center', paddingHorizontal: 32 }}>
+            <Text style={{ color: '#94a3b8', fontSize: 14, marginTop: 8, textAlign: 'center', paddingHorizontal: 32 }}>
               Vous serez notifié des événements importants
             </Text>
           </View>
